@@ -1,0 +1,6 @@
+[
+  {"pickups": {"T1": "R1"}, "moves": {"R1": "X", "R2": "M"}},
+  {"moves": {"R1": "M"}, "transfers": [{"task": "T1", "from": "R1", "to": "R2"}]},
+  {"moves": {"R1": "X", "R2": "B"}, "deliveries": ["T1"]},
+  {"moves": {"R1": "A"}}
+]

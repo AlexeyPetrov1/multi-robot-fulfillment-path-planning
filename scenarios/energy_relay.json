@@ -1,0 +1,37 @@
+{
+  "name": "Три робота: доставка возможна только вместе",
+  "reserve_fraction": 0.1,
+  "nodes": [
+    {"id": "S1", "x": 0, "y": 0},
+    {"id": "S2", "x": 4, "y": 0},
+    {"id": "S3", "x": 8, "y": 0},
+    {"id": "v0", "x": 0, "y": 1},
+    {"id": "v1", "x": 1, "y": 1},
+    {"id": "v2", "x": 2, "y": 1},
+    {"id": "v3", "x": 3, "y": 1},
+    {"id": "v4", "x": 4, "y": 1},
+    {"id": "v5", "x": 5, "y": 1},
+    {"id": "v6", "x": 6, "y": 1},
+    {"id": "v7", "x": 7, "y": 1},
+    {"id": "v8", "x": 8, "y": 1}
+  ],
+  "edges": [
+    {"source": "S1", "target": "v0", "cost": 1},
+    {"source": "S2", "target": "v4", "cost": 1},
+    {"source": "S3", "target": "v8", "cost": 1},
+    {"source": "v0", "target": "v1", "cost": 1},
+    {"source": "v1", "target": "v2", "cost": 1},
+    {"source": "v2", "target": "v3", "cost": 1},
+    {"source": "v3", "target": "v4", "cost": 1},
+    {"source": "v4", "target": "v5", "cost": 1},
+    {"source": "v5", "target": "v6", "cost": 1},
+    {"source": "v6", "target": "v7", "cost": 1},
+    {"source": "v7", "target": "v8", "cost": 1}
+  ],
+  "robots": [
+    {"id": "R1", "start": "S1", "station": "S1", "capacity": 15, "battery": 15, "move_cost": 2},
+    {"id": "R2", "start": "S2", "station": "S2", "capacity": 12, "battery": 12, "move_cost": 1},
+    {"id": "R3", "start": "S3", "station": "S3", "capacity": 21, "battery": 21, "move_cost": 3}
+  ],
+  "tasks": [{"id": "T1", "pickup": "v0", "dropoff": "v8"}]
+}

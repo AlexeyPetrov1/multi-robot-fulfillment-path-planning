@@ -25,6 +25,7 @@ tests/
 benchmarks/
 
 # python caches / build artifacts
+.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -33,6 +34,8 @@ __pycache__/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+artifacts/
+graphify-out/
 
 # editors / OS
 .vscode/

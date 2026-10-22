@@ -1,0 +1,166 @@
+{
+  "scenario": {
+    "name": "Отказ: до груза можно доехать, но вернуться с резервом нельзя",
+    "nodes": [
+      {
+        "id": "S1",
+        "x": 0.0,
+        "y": 0.0
+      },
+      {
+        "id": "M",
+        "x": 1.0,
+        "y": 0.0
+      },
+      {
+        "id": "S2",
+        "x": 2.0,
+        "y": 0.0
+      }
+    ],
+    "edges": [
+      {
+        "source": "S1",
+        "target": "M",
+        "cost": 1.0
+      },
+      {
+        "source": "M",
+        "target": "S2",
+        "cost": 1.0
+      }
+    ],
+    "robots": [
+      {
+        "id": "R1",
+        "start": "S1",
+        "station": "S1",
+        "capacity": 10.0,
+        "battery": 2.0,
+        "move_cost": 1.0
+      },
+      {
+        "id": "R2",
+        "start": "S2",
+        "station": "S2",
+        "capacity": 10.0,
+        "battery": 2.0,
+        "move_cost": 1.0
+      }
+    ],
+    "tasks": [
+      {
+        "id": "T1",
+        "pickup": "S1",
+        "dropoff": "S2"
+      }
+    ],
+    "reserve_fraction": 0.1
+  },
+  "success": false,
+  "metrics": {
+    "delivered_tasks": 0,
+    "total_tasks": 1,
+    "timesteps": 0,
+    "total_energy": 0.0,
+    "transfer_count": 0,
+    "all_home": true
+  },
+  "snapshots": [
+    {
+      "timestep": 0,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "S1",
+          "station": "S1",
+          "battery": 2.0,
+          "capacity": 10.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 1.0,
+          "status": "home",
+          "position_label": "S1",
+          "station_label": "S1",
+          "destination": "S1",
+          "destination_label": "S1",
+          "activity": "home",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "S2",
+          "station": "S2",
+          "battery": 2.0,
+          "capacity": 10.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 1.0,
+          "status": "home",
+          "position_label": "S2",
+          "station_label": "S2",
+          "destination": "S2",
+          "destination_label": "S2",
+          "activity": "home",
+          "cargo_label": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "S1",
+          "dropoff": "S2",
+          "owner": null,
+          "status": "pending",
+          "handed": false,
+          "label": "T1",
+          "pickup_label": "S1",
+          "dropoff_label": "S2"
+        }
+      ],
+      "complete": false
+    }
+  ],
+  "events": [
+    {
+      "timestep": 0,
+      "type": "refusal",
+      "robot": "R1",
+      "task": "T1",
+      "code": "direct_delivery_energy",
+      "message": "R1: энергии на полную доставку T1 и возврат недостаточно; возможен участок эстафеты",
+      "task_label": "T1",
+      "dropoff_label": "S2"
+    },
+    {
+      "timestep": 0,
+      "type": "refusal",
+      "robot": "R2",
+      "task": "T1",
+      "code": "direct_delivery_energy",
+      "message": "R2: энергии на полную доставку T1 и возврат недостаточно; возможен участок эстафеты",
+      "task_label": "T1",
+      "dropoff_label": "S2"
+    },
+    {
+      "timestep": 0,
+      "type": "refusal",
+      "code": "no_plan",
+      "message": "All reachable energy-feasible states exhausted."
+    }
+  ],
+  "plan": {
+    "success": false,
+    "status": "no_plan",
+    "optimal": false,
+    "actions": [],
+    "expanded_states": 2,
+    "planning_time_ms": 0.15739997616037726,
+    "reason": "All reachable energy-feasible states exhausted."
+  },
+  "status": "no_plan",
+  "optimal": false,
+  "reason": "All reachable energy-feasible states exhausted."
+}

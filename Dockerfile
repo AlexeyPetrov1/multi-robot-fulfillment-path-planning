@@ -28,13 +28,17 @@ RUN pip install -r requirements.txt
 # Application code (see .dockerignore for what is left out - tests, notes,
 # benchmarks, .git, .env, local databases).
 COPY robotics/ ./robotics/
+COPY frontend/ ./frontend/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY scripts/ ./scripts/
+COPY scenarios/ ./scenarios/
+COPY docs/demos/ ./docs/demos/
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 
 # Run as a non-root user.
 RUN useradd --create-home --uid 10001 appuser \
+    && sed -i 's/\r$//' ./docker/entrypoint.sh \
     && chmod +x ./docker/entrypoint.sh \
     && chown -R appuser:appuser /app
 USER appuser

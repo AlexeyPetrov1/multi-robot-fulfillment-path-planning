@@ -18,6 +18,9 @@ ortools==9.15.6755
 # REST framework and ASGI server.
 fastapi==0.139.0
 uvicorn==0.49.0
+# Streamlit 1.59.1's media middleware requires the pre-1.x responder behavior.
+# Covered by tests/test_dashboard_media.py (PNG responses with/without gzip).
+starlette==0.52.1
 
 # Request/response validation and typed configuration.
 pydantic==2.13.4
@@ -47,3 +50,5 @@ httpx==0.28.1
 # warehouse grid. Neither is imported by the robotics/ packages or the API.
 streamlit==1.59.1
 matplotlib==3.11.0
+imageio-ffmpeg==0.6.0
+Pillow==12.3.0

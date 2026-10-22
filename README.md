@@ -1,5 +1,68 @@
 # Autonomous Multi-Robot Fulfillment & Dynamic Path Planning System
 
+[Описание всех изменений в этой ветке](docs/changes-relay-workbench.md)
+
+## Посмотреть работу роботов
+
+Восемь записей настоящих прогонов. На них видны груз, заряд, встреча и
+возвращение на станцию. Есть отдельный пример отказа при нехватке энергии.
+
+**25 доставок на одном заряде.** Поле 16×16, четыре робота и 25 разных заказов.
+Без передач каждый робот сможет доставить максимум шесть грузов, поэтому
+всей команде не хватит энергии на 25 заказов. Сборщики передают грузы свободным
+курьерам в разных частях склада. Следующее задание начинается из текущей
+позиции; после каждой доставки цель меняется. Подзарядки и сброса батарей нет.
+
+![25 доставок без подзарядки](docs/demos/grid16_team4_25.gif)
+
+[Видео](docs/demos/grid16_team4_25.mp4) · [Сценарий](scenarios/grid16_team4_25.json) ·
+[Проверенный отчёт](docs/demos/grid16_team4_25.json)
+
+**Поле 16×16, четыре робота и четыре груза.** Короткий пример той же работы:
+получатель свободен до передачи, станции находятся у стены, каждый маршрут
+продолжается из текущей клетки. План заново проверяется симулятором.
+
+![Поле 16×16: четыре робота](docs/demos/grid16_team4.gif)
+
+[Видео](docs/demos/grid16_team4.mp4) · [Сценарий](scenarios/grid16_team4.json) ·
+[Проверенный отчёт](docs/demos/grid16_team4.json)
+
+| Простой обмен | Эстафета трёх роботов |
+|---|---|
+| ![Простой обмен](docs/demos/simple_handoff.gif) | ![Эстафета трёх роботов](docs/demos/energy_relay.gif) |
+| **Ожидание партнёра** | **Кольцо из паспорта** |
+| ![Ожидание партнёра](docs/demos/waiting_partner.gif) | ![Кольцо из паспорта](docs/demos/passport_ring.gif) |
+| **Экономный объезд** | **Отказ при нехватке энергии** |
+| ![Экономный объезд](docs/demos/energy_detour.gif) | ![Отказ при нехватке энергии](docs/demos/insufficient_energy.gif) |
+
+[Все GIF и видео с пояснениями](docs/demos/README.md) ·
+[Видеогалерея](docs/demos/index.html) · [Скачать всё одним архивом](docs/demos/demos.zip)
+
+В стенде используется видеопроигрыватель с паузой, перемоткой и полным экраном.
+GIF и MP4 каждого прогона можно скачать из интерфейса.
+Запись начинается с роботов на станциях и проигрывается один раз. На карте
+видны движущиеся роботы и их грузы, в панели указаны следующие цели.
+
+## Режим паспорта: обязательная передача грузов
+
+Основной экран теперь открывает стенд графовых миссий: загрузка JSON, индивидуальная
+энергия роботов, встречи в одной вершине только для передачи, обязательная передача
+каждого груза и возврат всех роботов на свои станции с резервом минимум 10%.
+Для длинных миссий диспетчер назначает задания из текущих позиций и согласует
+попарные встречи. Точный совместный A* служит проверкой малых сценариев.
+Любой план повторно проверяется симулятором. Сохранённый незавершённый прогон
+можно продолжить с прежними грузами, позициями и остатками энергии.
+
+```powershell
+& .venv/Scripts/python.exe -m streamlit run frontend/app.py
+& .venv/Scripts/python.exe scripts/run_relay_mission.py --scenario scenarios/energy_relay.json --output artifacts/relay_energy.json
+```
+
+Примеры находятся в `scenarios/`. Правила, формат, API и границы точного поиска:
+[docs/relay_missions.md](docs/relay_missions.md). Графовый режим работает локально
+без сервера и базы. Предыдущий складской пример доступен через переключатель
+режима; его архитектура и прежние результаты описаны ниже.
+
 [![CI](https://github.com/mihir1mathur/multi-robot-fulfillment-path-planning/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mihir1mathur/multi-robot-fulfillment-path-planning/actions/workflows/ci.yml)
 
 A deterministic, fully simulated multi-robot warehouse-fulfillment system. It
@@ -153,7 +216,7 @@ service container, Docker image build); a Streamlit demo dashboard.
 | Auth | PyJWT, bcrypt |
 | Dashboard | Streamlit, Matplotlib |
 | Testing | pytest |
-| CI / packaging | GitHub Actions; Dockerfile + docker-compose (build-validated in CI, not run locally) |
+| CI / packaging | GitHub Actions; Dockerfile + Docker Compose for the local API, PostgreSQL and dashboard |
 
 ## System Demo
 
@@ -291,8 +354,8 @@ passed on GitHub Actions for `main`. It validates the full test suite
 (**813 passed, 0 skipped**) against a PostgreSQL 18 service container, applies
 and verifies the Alembic migrations (`alembic upgrade head` + `alembic check`),
 runs an application startup / import smoke check, and validates the Docker image
-build in a separate job (no push — there is no deployment target). Docker is not
-run on the development machine, and nothing is deployed.
+build in a separate job (no push). A local Docker Compose deployment also runs
+PostgreSQL, the API and the replay dashboard; it is separate from CI.
 
 ## Running Locally
 
@@ -335,12 +398,31 @@ python scripts/run_system_demo.py            # narrated end-to-end walkthrough
 python benchmarks/run_final_evaluation.py    # consolidated benchmark evaluation
 ```
 
+### Three robots completing consecutive deliveries
+
+Set `POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, `BOOTSTRAP_ADMIN_USERNAME` and
+`BOOTSTRAP_ADMIN_PASSWORD` in the ignored `.env`, then run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.demo.yml exec -T api python scripts/run_three_robot_demo.py --output /app/artifacts/three_robot_run.json
+```
+
+The runner requires an empty fleet and task queue and preserves existing data
+and reports. It executes three waves of three tasks: CP-SAT allocation, verified
+joint movement to pickup, loading, movement to drop-off, unloading and completion.
+Each robot completes three tasks. PostgreSQL stores the verified state; actual
+execution snapshots are saved in `artifacts/three_robot_run.json`.
+Open [the replay](http://127.0.0.1:8501/Three_robot_run) and enable autoplay or
+move the frame slider. This page reads the recording without changing the fleet.
+The main dashboard's Initialise button creates its separate four-robot scenario.
+
 ## Known Limitations
 
 - **Simulation only.** No physical robots, no hardware-in-the-loop, no real-time control guarantees.
 - **Prioritized coordination is not globally optimal or complete.** A poor priority order can make a solvable instance fail; dense bidirectional corridors with large fleets are not solved.
 - **Conflict-free and recovery figures are scoped to the deterministic benchmark runs**, not the real world.
-- **Recovery is partial by design.** An `IN_PROGRESS` task on a failed robot is failed honestly, not handed off; a "human clears the robot" event is not modeled; the pick / drop / complete execution steps are not implemented (execution stops at the coordinated goal).
+- **Recovery is partial by design.** An `IN_PROGRESS` task on a failed robot is failed honestly, not handed off; a "human clears the robot" event is not modeled. The standard recovery demo stops at the coordinated goal. The three-robot runner orchestrates pickup, delivery and completion externally; the API has no autonomous execution endpoint.
 - **The dashboard recovery view** retains previously computed route geometry rather than redrawing the full post-recovery trajectory.
 - **Service and concurrency benchmarks are in-process** measurements of wrapper overhead — not production latency, throughput, or load-test results.
-- **The Docker image is built and smoke-checked in CI**, not run on the development machine and not deployed anywhere — this repository demonstrates CI and image-build validation, not a deployment pipeline.
+- **Local deployment only.** The Docker Compose stack was run locally with PostgreSQL 18, the API and Streamlit, including the three-robot delivery scenario. This does not establish a production deployment pipeline.

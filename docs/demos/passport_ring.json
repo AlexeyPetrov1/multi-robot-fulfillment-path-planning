@@ -1,0 +1,1078 @@
+{
+  "scenario": {
+    "name": "Эталон паспорта: кольцо 3×3, три робота, два груза",
+    "nodes": [
+      {
+        "id": "v0",
+        "x": 0.0,
+        "y": 0.0
+      },
+      {
+        "id": "v1",
+        "x": 1.0,
+        "y": 0.0
+      },
+      {
+        "id": "v2",
+        "x": 2.0,
+        "y": 0.0
+      },
+      {
+        "id": "v3",
+        "x": 2.0,
+        "y": 1.0
+      },
+      {
+        "id": "v4",
+        "x": 2.0,
+        "y": 2.0
+      },
+      {
+        "id": "v5",
+        "x": 1.0,
+        "y": 2.0
+      },
+      {
+        "id": "v6",
+        "x": 0.0,
+        "y": 2.0
+      },
+      {
+        "id": "v7",
+        "x": 0.0,
+        "y": 1.0
+      }
+    ],
+    "edges": [
+      {
+        "source": "v0",
+        "target": "v1",
+        "cost": 1.0
+      },
+      {
+        "source": "v1",
+        "target": "v2",
+        "cost": 1.0
+      },
+      {
+        "source": "v2",
+        "target": "v3",
+        "cost": 1.0
+      },
+      {
+        "source": "v3",
+        "target": "v4",
+        "cost": 1.0
+      },
+      {
+        "source": "v4",
+        "target": "v5",
+        "cost": 1.0
+      },
+      {
+        "source": "v5",
+        "target": "v6",
+        "cost": 1.0
+      },
+      {
+        "source": "v6",
+        "target": "v7",
+        "cost": 1.0
+      },
+      {
+        "source": "v7",
+        "target": "v0",
+        "cost": 1.0
+      }
+    ],
+    "robots": [
+      {
+        "id": "R1",
+        "start": "v0",
+        "station": "v0",
+        "capacity": 20.0,
+        "battery": 20.0,
+        "move_cost": 1.0
+      },
+      {
+        "id": "R2",
+        "start": "v4",
+        "station": "v4",
+        "capacity": 20.0,
+        "battery": 20.0,
+        "move_cost": 2.0
+      },
+      {
+        "id": "R3",
+        "start": "v6",
+        "station": "v6",
+        "capacity": 10.0,
+        "battery": 10.0,
+        "move_cost": 1.5
+      }
+    ],
+    "tasks": [
+      {
+        "id": "T1",
+        "pickup": "v0",
+        "dropoff": "v4"
+      },
+      {
+        "id": "T2",
+        "pickup": "v4",
+        "dropoff": "v0"
+      }
+    ],
+    "reserve_fraction": 0.1
+  },
+  "success": true,
+  "metrics": {
+    "delivered_tasks": 2,
+    "total_tasks": 2,
+    "timesteps": 6,
+    "total_energy": 23.0,
+    "transfer_count": 2,
+    "all_home": true
+  },
+  "snapshots": [
+    {
+      "timestep": 0,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v0",
+          "station": "v0",
+          "battery": 20.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 2.0,
+          "status": "home",
+          "position_label": "v0",
+          "station_label": "v0",
+          "destination": "v0",
+          "destination_label": "v0",
+          "activity": "to_pickup",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "v4",
+          "station": "v4",
+          "battery": 20.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 2.0,
+          "status": "home",
+          "position_label": "v4",
+          "station_label": "v4",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "to_pickup",
+          "cargo_label": null
+        },
+        {
+          "id": "R3",
+          "position": "v6",
+          "station": "v6",
+          "battery": 10.0,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 1.0,
+          "status": "home",
+          "position_label": "v6",
+          "station_label": "v6",
+          "destination": "v7",
+          "destination_label": "Встреча (0, 1)",
+          "activity": "to_receive",
+          "cargo_label": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": null,
+          "status": "pending",
+          "handed": false,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": null,
+          "status": "pending",
+          "handed": false,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 1,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v7",
+          "station": "v0",
+          "battery": 19.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 1.0,
+          "reserve": 2.0,
+          "status": "idle",
+          "position_label": "v7",
+          "station_label": "v0",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_receive",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "v3",
+          "station": "v4",
+          "battery": 18.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": "T2",
+          "return_required": 2.0,
+          "reserve": 2.0,
+          "status": "carrying",
+          "position_label": "v3",
+          "station_label": "v4",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_handoff",
+          "cargo_label": "T2"
+        },
+        {
+          "id": "R3",
+          "position": "v7",
+          "station": "v6",
+          "battery": 8.5,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": "T1",
+          "return_required": 1.5,
+          "reserve": 1.0,
+          "status": "carrying",
+          "position_label": "v7",
+          "station_label": "v6",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "to_delivery",
+          "cargo_label": "T1"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": "R3",
+          "status": "carried",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": "R2",
+          "status": "carried",
+          "handed": false,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 2,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v0",
+          "station": "v0",
+          "battery": 18.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 2.0,
+          "status": "home",
+          "position_label": "v0",
+          "station_label": "v0",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_receive",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "v2",
+          "station": "v4",
+          "battery": 16.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": "T2",
+          "return_required": 4.0,
+          "reserve": 2.0,
+          "status": "carrying",
+          "position_label": "v2",
+          "station_label": "v4",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_handoff",
+          "cargo_label": "T2"
+        },
+        {
+          "id": "R3",
+          "position": "v6",
+          "station": "v6",
+          "battery": 7.0,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": "T1",
+          "return_required": 0.0,
+          "reserve": 1.0,
+          "status": "carrying",
+          "position_label": "v6",
+          "station_label": "v6",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "to_delivery",
+          "cargo_label": "T1"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": "R3",
+          "status": "carried",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": "R2",
+          "status": "carried",
+          "handed": false,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 3,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v1",
+          "station": "v0",
+          "battery": 17.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 1.0,
+          "reserve": 2.0,
+          "status": "idle",
+          "position_label": "v1",
+          "station_label": "v0",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_receive",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "v2",
+          "station": "v4",
+          "battery": 16.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": "T2",
+          "return_required": 4.0,
+          "reserve": 2.0,
+          "status": "carrying",
+          "position_label": "v2",
+          "station_label": "v4",
+          "destination": "v2",
+          "destination_label": "Встреча (2, 0)",
+          "activity": "to_handoff",
+          "cargo_label": "T2"
+        },
+        {
+          "id": "R3",
+          "position": "v5",
+          "station": "v6",
+          "battery": 5.5,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": "T1",
+          "return_required": 1.5,
+          "reserve": 1.0,
+          "status": "carrying",
+          "position_label": "v5",
+          "station_label": "v6",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "to_delivery",
+          "cargo_label": "T1"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": "R3",
+          "status": "carried",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": "R2",
+          "status": "carried",
+          "handed": false,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 4,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v2",
+          "station": "v0",
+          "battery": 16.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": "T2",
+          "return_required": 2.0,
+          "reserve": 2.0,
+          "status": "carrying",
+          "position_label": "v2",
+          "station_label": "v0",
+          "destination": "v0",
+          "destination_label": "v0",
+          "activity": "to_delivery",
+          "cargo_label": "T2"
+        },
+        {
+          "id": "R2",
+          "position": "v2",
+          "station": "v4",
+          "battery": 16.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": null,
+          "return_required": 4.0,
+          "reserve": 2.0,
+          "status": "idle",
+          "position_label": "v2",
+          "station_label": "v4",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "returning",
+          "cargo_label": null
+        },
+        {
+          "id": "R3",
+          "position": "v4",
+          "station": "v6",
+          "battery": 4.0,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": null,
+          "return_required": 3.0,
+          "reserve": 1.0,
+          "status": "idle",
+          "position_label": "v4",
+          "station_label": "v6",
+          "destination": "v6",
+          "destination_label": "v6",
+          "activity": "returning",
+          "cargo_label": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": null,
+          "status": "delivered",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": "R1",
+          "status": "carried",
+          "handed": true,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 5,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v1",
+          "station": "v0",
+          "battery": 15.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": "T2",
+          "return_required": 1.0,
+          "reserve": 2.0,
+          "status": "carrying",
+          "position_label": "v1",
+          "station_label": "v0",
+          "destination": "v0",
+          "destination_label": "v0",
+          "activity": "to_delivery",
+          "cargo_label": "T2"
+        },
+        {
+          "id": "R2",
+          "position": "v3",
+          "station": "v4",
+          "battery": 14.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": null,
+          "return_required": 2.0,
+          "reserve": 2.0,
+          "status": "idle",
+          "position_label": "v3",
+          "station_label": "v4",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "returning",
+          "cargo_label": null
+        },
+        {
+          "id": "R3",
+          "position": "v5",
+          "station": "v6",
+          "battery": 2.5,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": null,
+          "return_required": 1.5,
+          "reserve": 1.0,
+          "status": "idle",
+          "position_label": "v5",
+          "station_label": "v6",
+          "destination": "v6",
+          "destination_label": "v6",
+          "activity": "returning",
+          "cargo_label": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": null,
+          "status": "delivered",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": "R1",
+          "status": "carried",
+          "handed": true,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "timestep": 6,
+      "robots": [
+        {
+          "id": "R1",
+          "position": "v0",
+          "station": "v0",
+          "battery": 14.0,
+          "capacity": 20.0,
+          "move_cost": 1.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 2.0,
+          "status": "home",
+          "position_label": "v0",
+          "station_label": "v0",
+          "destination": "v0",
+          "destination_label": "v0",
+          "activity": "home",
+          "cargo_label": null
+        },
+        {
+          "id": "R2",
+          "position": "v4",
+          "station": "v4",
+          "battery": 12.0,
+          "capacity": 20.0,
+          "move_cost": 2.0,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 2.0,
+          "status": "home",
+          "position_label": "v4",
+          "station_label": "v4",
+          "destination": "v4",
+          "destination_label": "v4",
+          "activity": "home",
+          "cargo_label": null
+        },
+        {
+          "id": "R3",
+          "position": "v6",
+          "station": "v6",
+          "battery": 1.0,
+          "capacity": 10.0,
+          "move_cost": 1.5,
+          "cargo": null,
+          "return_required": 0.0,
+          "reserve": 1.0,
+          "status": "home",
+          "position_label": "v6",
+          "station_label": "v6",
+          "destination": "v6",
+          "destination_label": "v6",
+          "activity": "home",
+          "cargo_label": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "T1",
+          "pickup": "v0",
+          "dropoff": "v4",
+          "owner": null,
+          "status": "delivered",
+          "handed": true,
+          "label": "T1",
+          "pickup_label": "v0",
+          "dropoff_label": "v4"
+        },
+        {
+          "id": "T2",
+          "pickup": "v4",
+          "dropoff": "v0",
+          "owner": null,
+          "status": "delivered",
+          "handed": true,
+          "label": "T2",
+          "pickup_label": "v4",
+          "dropoff_label": "v0"
+        }
+      ],
+      "complete": true
+    }
+  ],
+  "events": [
+    {
+      "timestep": 0,
+      "type": "refusal",
+      "robot": "R3",
+      "task": "T1",
+      "code": "direct_delivery_energy",
+      "message": "R3: энергии на полную доставку T1 и возврат недостаточно; возможен участок эстафеты",
+      "task_label": "T1",
+      "dropoff_label": "v4"
+    },
+    {
+      "timestep": 0,
+      "type": "refusal",
+      "robot": "R3",
+      "task": "T2",
+      "code": "direct_delivery_energy",
+      "message": "R3: энергии на полную доставку T2 и возврат недостаточно; возможен участок эстафеты",
+      "task_label": "T2",
+      "dropoff_label": "v0"
+    },
+    {
+      "timestep": 1,
+      "type": "pickup",
+      "message": "R1 picked up T1",
+      "task": "T1",
+      "robot": "R1",
+      "task_label": "T1",
+      "dropoff_label": "v4"
+    },
+    {
+      "timestep": 1,
+      "type": "pickup",
+      "message": "R2 picked up T2",
+      "task": "T2",
+      "robot": "R2",
+      "task_label": "T2",
+      "dropoff_label": "v0"
+    },
+    {
+      "timestep": 1,
+      "type": "move",
+      "message": "R1: v0 -> v7",
+      "robot": "R1",
+      "from": "v0",
+      "to": "v7",
+      "energy": 1.0,
+      "from_label": "v0",
+      "to_label": "v7"
+    },
+    {
+      "timestep": 1,
+      "type": "move",
+      "message": "R2: v4 -> v3",
+      "robot": "R2",
+      "from": "v4",
+      "to": "v3",
+      "energy": 2.0,
+      "from_label": "v4",
+      "to_label": "v3"
+    },
+    {
+      "timestep": 1,
+      "type": "move",
+      "message": "R3: v6 -> v7",
+      "robot": "R3",
+      "from": "v6",
+      "to": "v7",
+      "energy": 1.5,
+      "from_label": "v6",
+      "to_label": "v7"
+    },
+    {
+      "timestep": 1,
+      "type": "transfer",
+      "message": "R1 передал груз T1 роботу R3",
+      "task": "T1",
+      "from": "R1",
+      "to": "R3",
+      "task_label": "T1",
+      "dropoff_label": "v4"
+    },
+    {
+      "timestep": 2,
+      "type": "move",
+      "message": "R1: v7 -> v0",
+      "robot": "R1",
+      "from": "v7",
+      "to": "v0",
+      "energy": 1.0,
+      "from_label": "v7",
+      "to_label": "v0"
+    },
+    {
+      "timestep": 2,
+      "type": "move",
+      "message": "R2: v3 -> v2",
+      "robot": "R2",
+      "from": "v3",
+      "to": "v2",
+      "energy": 2.0,
+      "from_label": "v3",
+      "to_label": "v2"
+    },
+    {
+      "timestep": 2,
+      "type": "move",
+      "message": "R3: v7 -> v6",
+      "robot": "R3",
+      "from": "v7",
+      "to": "v6",
+      "energy": 1.5,
+      "from_label": "v7",
+      "to_label": "v6"
+    },
+    {
+      "timestep": 3,
+      "type": "move",
+      "message": "R1: v0 -> v1",
+      "robot": "R1",
+      "from": "v0",
+      "to": "v1",
+      "energy": 1.0,
+      "from_label": "v0",
+      "to_label": "v1"
+    },
+    {
+      "timestep": 3,
+      "type": "wait",
+      "message": "R2: v2 -> v2",
+      "robot": "R2",
+      "from": "v2",
+      "to": "v2",
+      "energy": 0.0,
+      "from_label": "v2",
+      "to_label": "v2"
+    },
+    {
+      "timestep": 3,
+      "type": "move",
+      "message": "R3: v6 -> v5",
+      "robot": "R3",
+      "from": "v6",
+      "to": "v5",
+      "energy": 1.5,
+      "from_label": "v6",
+      "to_label": "v5"
+    },
+    {
+      "timestep": 4,
+      "type": "move",
+      "message": "R1: v1 -> v2",
+      "robot": "R1",
+      "from": "v1",
+      "to": "v2",
+      "energy": 1.0,
+      "from_label": "v1",
+      "to_label": "v2"
+    },
+    {
+      "timestep": 4,
+      "type": "wait",
+      "message": "R2: v2 -> v2",
+      "robot": "R2",
+      "from": "v2",
+      "to": "v2",
+      "energy": 0.0,
+      "from_label": "v2",
+      "to_label": "v2"
+    },
+    {
+      "timestep": 4,
+      "type": "move",
+      "message": "R3: v5 -> v4",
+      "robot": "R3",
+      "from": "v5",
+      "to": "v4",
+      "energy": 1.5,
+      "from_label": "v5",
+      "to_label": "v4"
+    },
+    {
+      "timestep": 4,
+      "type": "transfer",
+      "message": "R2 передал груз T2 роботу R1",
+      "task": "T2",
+      "from": "R2",
+      "to": "R1",
+      "task_label": "T2",
+      "dropoff_label": "v0"
+    },
+    {
+      "timestep": 4,
+      "type": "delivery",
+      "message": "T1 delivered",
+      "task": "T1",
+      "task_label": "T1",
+      "dropoff_label": "v4"
+    },
+    {
+      "timestep": 5,
+      "type": "move",
+      "message": "R1: v2 -> v1",
+      "robot": "R1",
+      "from": "v2",
+      "to": "v1",
+      "energy": 1.0,
+      "from_label": "v2",
+      "to_label": "v1"
+    },
+    {
+      "timestep": 5,
+      "type": "move",
+      "message": "R2: v2 -> v3",
+      "robot": "R2",
+      "from": "v2",
+      "to": "v3",
+      "energy": 2.0,
+      "from_label": "v2",
+      "to_label": "v3"
+    },
+    {
+      "timestep": 5,
+      "type": "move",
+      "message": "R3: v4 -> v5",
+      "robot": "R3",
+      "from": "v4",
+      "to": "v5",
+      "energy": 1.5,
+      "from_label": "v4",
+      "to_label": "v5"
+    },
+    {
+      "timestep": 6,
+      "type": "move",
+      "message": "R1: v1 -> v0",
+      "robot": "R1",
+      "from": "v1",
+      "to": "v0",
+      "energy": 1.0,
+      "from_label": "v1",
+      "to_label": "v0"
+    },
+    {
+      "timestep": 6,
+      "type": "move",
+      "message": "R2: v3 -> v4",
+      "robot": "R2",
+      "from": "v3",
+      "to": "v4",
+      "energy": 2.0,
+      "from_label": "v3",
+      "to_label": "v4"
+    },
+    {
+      "timestep": 6,
+      "type": "move",
+      "message": "R3: v5 -> v6",
+      "robot": "R3",
+      "from": "v5",
+      "to": "v6",
+      "energy": 1.5,
+      "from_label": "v5",
+      "to_label": "v6"
+    },
+    {
+      "timestep": 6,
+      "type": "delivery",
+      "message": "T2 delivered",
+      "task": "T2",
+      "task_label": "T2",
+      "dropoff_label": "v0"
+    }
+  ],
+  "plan": {
+    "success": true,
+    "status": "optimal",
+    "optimal": true,
+    "actions": [
+      {
+        "moves": {
+          "R1": "v7",
+          "R2": "v3",
+          "R3": "v7"
+        },
+        "pickups": {
+          "T1": "R1",
+          "T2": "R2"
+        },
+        "transfers": [
+          {
+            "task": "T1",
+            "from": "R1",
+            "to": "R3"
+          }
+        ]
+      },
+      {
+        "moves": {
+          "R1": "v0",
+          "R2": "v2",
+          "R3": "v6"
+        }
+      },
+      {
+        "moves": {
+          "R1": "v1",
+          "R3": "v5"
+        }
+      },
+      {
+        "moves": {
+          "R1": "v2",
+          "R3": "v4"
+        },
+        "transfers": [
+          {
+            "task": "T2",
+            "from": "R2",
+            "to": "R1"
+          }
+        ],
+        "deliveries": [
+          "T1"
+        ]
+      },
+      {
+        "moves": {
+          "R1": "v1",
+          "R2": "v3",
+          "R3": "v5"
+        }
+      },
+      {
+        "moves": {
+          "R1": "v0",
+          "R2": "v4",
+          "R3": "v6"
+        },
+        "deliveries": [
+          "T2"
+        ]
+      }
+    ],
+    "expanded_states": 191,
+    "planning_time_ms": 145.8870000205934,
+    "reason": null
+  },
+  "status": "optimal",
+  "optimal": true,
+  "reason": null
+}

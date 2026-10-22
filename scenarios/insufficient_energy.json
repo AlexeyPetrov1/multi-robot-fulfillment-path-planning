@@ -1,0 +1,15 @@
+{
+  "name": "Отказ: до груза можно доехать, но вернуться с резервом нельзя",
+  "reserve_fraction": 0.1,
+  "nodes": [
+    {"id": "S1", "x": 0, "y": 0},
+    {"id": "M", "x": 1, "y": 0},
+    {"id": "S2", "x": 2, "y": 0}
+  ],
+  "edges": [{"source": "S1", "target": "M"}, {"source": "M", "target": "S2"}],
+  "robots": [
+    {"id": "R1", "start": "S1", "station": "S1", "capacity": 10, "battery": 2, "move_cost": 1},
+    {"id": "R2", "start": "S2", "station": "S2", "capacity": 10, "battery": 2, "move_cost": 1}
+  ],
+  "tasks": [{"id": "T1", "pickup": "S1", "dropoff": "S2"}]
+}

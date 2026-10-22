@@ -494,7 +494,9 @@ class RecoveryManager:
         future = self._future_table(now, state, exclude=set(affected))
 
         all_ok = True
+        pending = set(affected)
         for rid in sorted(affected):
+            pending.remove(rid)
             tp = state.active_paths[rid]
             current = state.executed_trace[rid][-1].position
             goal = state.goals[rid]
@@ -534,6 +536,7 @@ class RecoveryManager:
                     state.executed_trace[rid],
                     TimedPath.found(rid, [TimedStep(current, now)]),
                 )
+                future = self._future_table(now, state, exclude=pending)
 
         result.replanning_success = all_ok
         result.recovery_success = all_ok
@@ -552,13 +555,13 @@ class RecoveryManager:
     ) -> None:
         """Independently check that the post-recovery plan is conflict-free."""
         remaining = {}
-        for rid in state.live_robots():
-            if rid in state.safe_stopped:
-                continue
-            tp = state.active_paths[rid]
-            steps = [s for s in tp.steps if s.timestep >= now]
-            if len(steps) >= 1:
-                remaining[rid] = TimedPath.found(rid, steps)
+        for robot in self.simulator.robots:
+            rid = robot.robot_id
+            tp = state.active_paths.get(rid)
+            steps = [] if tp is None else [s for s in tp.steps if s.timestep >= now]
+            if rid in state.offline or rid in state.safe_stopped or not steps:
+                steps = [TimedStep(robot.position, now)]
+            remaining[rid] = TimedPath.found(rid, steps)
         problems = find_coordination_problems(
             remaining, self.warehouse, check_obstacles=False
         )
@@ -602,16 +605,14 @@ class RecoveryManager:
             if not robot.has_battery_for_move():
                 return False, f"robot '{rid}' has no battery to move", 0, 0
 
-        # also: no live robot may move onto an OFFLINE robot's cell
-        offline_cells = {
-            self.simulator.get_robot(o).position for o in state.offline
-            if self._robot_exists(o)
+        # Robots outside this joint step remain at their current positions.
+        dests: Dict[Position, str] = {
+            robot.position: robot.robot_id
+            for robot in self.simulator.robots
+            if robot.robot_id not in intents
         }
-        dests: Dict[Position, str] = {}
         for rid in movers:
             _, to = intents[rid]
-            if to in offline_cells:
-                return False, f"robot '{rid}' would move onto failed robot at {to}", 0, 0
             if to in dests:
                 return False, f"vertex conflict: '{dests[to]}' and '{rid}' both want {to}", 1, 0
             dests[to] = rid
@@ -659,36 +660,32 @@ class RecoveryManager:
     def _future_table(
         self, now: int, state: _State, exclude: Set[str]
     ) -> ReservationTable:
-        skip = set(exclude) | set(state.offline)
+        stationary = {
+            robot.robot_id: robot.position
+            for robot in self.simulator.robots
+            if robot.robot_id not in exclude
+            and (
+                robot.robot_id not in state.active_paths
+                or robot.robot_id in state.offline
+                or robot.robot_id in state.safe_stopped
+            )
+        }
+        skip = set(exclude) | set(stationary)
 
-        # Cells a failed robot physically occupies for the rest of the episode.
-        failed_cells = [
-            self.simulator.get_robot(failed_id).position
-            for failed_id in state.offline
-            if self._robot_exists(failed_id)
-        ]
-        # A still-live robot whose planned route runs through one of those cells
-        # at or after `now` is route-invalidated. Its stale reservations must
-        # not be baked into this scratch table: they would collide with the
-        # failed-robot pin added below (and are meaningless anyway - that robot
-        # is replanned through the normal recovery path). Excluding it here is
-        # consistent with `_recover_failure` step 4, which replans exactly the
-        # robots that `route_touches_cell(..., failed_cell, now)` identifies.
-        if failed_cells:
+        # A route through a stopped robot is stale; do not let its old
+        # reservations overwrite the cell the stopped robot still occupies.
+        if stationary:
             for rid, tp in state.active_paths.items():
                 if rid in skip or tp is None or not tp.success:
                     continue
-                if any(route_touches_cell(tp, cell, now) for cell in failed_cells):
+                if any(route_touches_cell(tp, cell, now) for cell in stationary.values()):
                     skip.add(rid)
 
         table = build_future_reservations(
             state.active_paths, now, state.horizon, exclude=skip
         )
-        # pin every failed robot in place
-        for failed_id in state.offline:
-            if self._robot_exists(failed_id):
-                cell = self.simulator.get_robot(failed_id).position
-                table.block_cell(cell, now, state.horizon, f"__failed__{failed_id}")
+        for rid, cell in sorted(stationary.items()):
+            table.block_cell(cell, now, state.horizon, rid)
         return table
 
     @staticmethod
@@ -770,6 +767,11 @@ class RecoveryManager:
             for rid, steps in state.executed_trace.items()
             if len(steps) >= 1
         }
+        for robot in self.simulator.robots:
+            if robot.robot_id not in executed_paths:
+                executed_paths[robot.robot_id] = TimedPath.found(
+                    robot.robot_id, [TimedStep(robot.position, 0)]
+                )
         validation_problems = find_coordination_problems(
             executed_paths, self.warehouse
         )

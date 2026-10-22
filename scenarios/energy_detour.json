@@ -1,0 +1,24 @@
+{
+  "name": "Длиннее по шагам, дешевле по энергии",
+  "description": "Прямая дорога требует слишком много энергии. Роботы передают груз на длинном обходном пути и возвращаются с запасом.",
+  "reserve_fraction": 0.1,
+  "nodes": [
+    {"id": "A", "x": 0, "y": 0},
+    {"id": "L", "x": 1, "y": 1},
+    {"id": "M", "x": 2, "y": 1},
+    {"id": "R", "x": 3, "y": 1},
+    {"id": "B", "x": 4, "y": 0}
+  ],
+  "edges": [
+    {"source": "A", "target": "L", "cost": 1},
+    {"source": "L", "target": "M", "cost": 1},
+    {"source": "M", "target": "R", "cost": 1},
+    {"source": "R", "target": "B", "cost": 1},
+    {"source": "A", "target": "B", "cost": 10}
+  ],
+  "robots": [
+    {"id": "R1", "start": "A", "station": "A", "capacity": 6, "battery": 6, "move_cost": 1},
+    {"id": "R2", "start": "B", "station": "B", "capacity": 8, "battery": 8, "move_cost": 1.5}
+  ],
+  "tasks": [{"id": "T1", "pickup": "A", "dropoff": "B"}]
+}

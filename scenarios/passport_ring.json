@@ -1,0 +1,33 @@
+{
+  "name": "Эталон паспорта: кольцо 3×3, три робота, два груза",
+  "reserve_fraction": 0.1,
+  "nodes": [
+    {"id": "v0", "x": 0, "y": 0},
+    {"id": "v1", "x": 1, "y": 0},
+    {"id": "v2", "x": 2, "y": 0},
+    {"id": "v3", "x": 2, "y": 1},
+    {"id": "v4", "x": 2, "y": 2},
+    {"id": "v5", "x": 1, "y": 2},
+    {"id": "v6", "x": 0, "y": 2},
+    {"id": "v7", "x": 0, "y": 1}
+  ],
+  "edges": [
+    {"source": "v0", "target": "v1"},
+    {"source": "v1", "target": "v2"},
+    {"source": "v2", "target": "v3"},
+    {"source": "v3", "target": "v4"},
+    {"source": "v4", "target": "v5"},
+    {"source": "v5", "target": "v6"},
+    {"source": "v6", "target": "v7"},
+    {"source": "v7", "target": "v0"}
+  ],
+  "robots": [
+    {"id": "R1", "start": "v0", "station": "v0", "capacity": 20, "battery": 20, "move_cost": 1},
+    {"id": "R2", "start": "v4", "station": "v4", "capacity": 20, "battery": 20, "move_cost": 2},
+    {"id": "R3", "start": "v6", "station": "v6", "capacity": 10, "battery": 10, "move_cost": 1.5}
+  ],
+  "tasks": [
+    {"id": "T1", "pickup": "v0", "dropoff": "v4"},
+    {"id": "T2", "pickup": "v4", "dropoff": "v0"}
+  ]
+}

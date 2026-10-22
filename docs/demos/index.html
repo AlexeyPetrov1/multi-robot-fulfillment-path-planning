@@ -1,0 +1,39 @@
+<!doctype html><html lang="ru"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Роботы: примеры работы</title>
+<style>body{max-width:1120px;margin:auto;padding:32px 20px;background:#f1f5f9;color:#172554;font:17px/1.5 system-ui,sans-serif}
+h1{font-size:34px;margin-bottom:8px}h2{font-size:23px;margin:0 0 8px}p{margin:8px 0 16px;color:#475569}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:24px}article{padding:24px;background:white;border-radius:18px;border:1px solid #e2e8f0}
+video{width:100%;border-radius:12px;background:#e2e8f0}a{color:#2563eb}.result{font-size:15px;color:#0f766e}</style>
+<h1>Как роботы выполняют задачи вместе</h1><p>Настоящие прогоны симулятора. В каждом видео видны груз, заряд, встреча и результат.
+Плеер поддерживает паузу, перемотку и полный экран. Все файлы работают без сервера.</p><main><article><h2>Склад 16×16: 25 заказов с передачей пустому курьеру</h2><p>25 разных доставок между пятью точками погрузки и пятью точками отгрузки. Четыре робота передают грузы свободным напарникам в разных частях склада. Следующее задание начинается из текущей позиции. Подзарядок нет; без передач энергии хватит максимум на 24 доставки.</p>
+<video controls preload="metadata" poster="grid16_team4_25.png"><source src="grid16_team4_25.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 25/25 · 309 тактов · 25 передач · 1618.2 энергии</p><p><a href="grid16_team4_25.gif">Открыть GIF</a> ·
+<a href="grid16_team4_25.mp4" download>Скачать видео</a> · <a href="grid16_team4_25.json">Проверенный отчёт</a></p></article>
+<article><h2>Простой обмен в центре</h2><p>Два робота встречаются в центре. Первый передаёт груз второму, после доставки оба возвращаются на свои станции.</p>
+<video controls preload="metadata" poster="simple_handoff.png"><source src="simple_handoff.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 1/1 · 2 тактов · 1 передач · 4 энергии</p><p><a href="simple_handoff.gif">Открыть GIF</a> ·
+<a href="simple_handoff.mp4" download>Скачать видео</a> · <a href="simple_handoff.json">Проверенный отчёт</a></p></article>
+<article><h2>Три робота: доставка возможна только вместе</h2><p>Одного робота недостаточно: груз проходит через всю команду. Три робота выполняют свои участки и возвращаются с запасом энергии.</p>
+<video controls preload="metadata" poster="energy_relay.png"><source src="energy_relay.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 1/1 · 10 тактов · 2 передач · 40 энергии</p><p><a href="energy_relay.gif">Открыть GIF</a> ·
+<a href="energy_relay.mp4" download>Скачать видео</a> · <a href="energy_relay.json">Проверенный отчёт</a></p></article>
+<article><h2>Склад 16×16: 4 заказов с передачей пустому курьеру</h2><p>Склад 16×16, четыре робота и четыре доставки. Сборщики передают грузы свободным курьерам, затем берут следующее задание из текущей позиции. Все возвращаются на станции с резервом.</p>
+<video controls preload="metadata" poster="grid16_team4.png"><source src="grid16_team4.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 4/4 · 85 тактов · 4 передач · 279.2 энергии</p><p><a href="grid16_team4.gif">Открыть GIF</a> ·
+<a href="grid16_team4.mp4" download>Скачать видео</a> · <a href="grid16_team4.json">Проверенный отчёт</a></p></article>
+<article><h2>Эталон паспорта: кольцо 3×3, три робота, два груза</h2><p>Два груза нужно доставить в противоположные углы. Роботы встречаются на кольце и по очереди передают грузы свободному напарнику.</p>
+<video controls preload="metadata" poster="passport_ring.png"><source src="passport_ring.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 2/2 · 6 тактов · 2 передач · 23 энергии</p><p><a href="passport_ring.gif">Открыть GIF</a> ·
+<a href="passport_ring.mp4" download>Скачать видео</a> · <a href="passport_ring.json">Проверенный отчёт</a></p></article>
+<article><h2>Партнёр ждёт у встречи</h2><p>Один робот прибывает раньше и ждёт свободного напарника в точке встречи. После передачи роботы продолжают доставки.</p>
+<video controls preload="metadata" poster="waiting_partner.png"><source src="waiting_partner.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 1/1 · 4 тактов · 1 передач · 6 энергии</p><p><a href="waiting_partner.gif">Открыть GIF</a> ·
+<a href="waiting_partner.mp4" download>Скачать видео</a> · <a href="waiting_partner.json">Проверенный отчёт</a></p></article>
+<article><h2>Длиннее по шагам, дешевле по энергии</h2><p>Прямое ребро слишком дорого по энергии. Роботы выбирают более длинный экономный маршрут и передают груз на встрече.</p>
+<video controls preload="metadata" poster="energy_detour.png"><source src="energy_detour.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 1/1 · 4 тактов · 1 передач · 10 энергии</p><p><a href="energy_detour.gif">Открыть GIF</a> ·
+<a href="energy_detour.mp4" download>Скачать видео</a> · <a href="energy_detour.json">Проверенный отчёт</a></p></article>
+<article><h2>Отказ: до груза можно доехать, но вернуться с резервом нельзя</h2><p>Энергии на движение хватает, но на безопасное возвращение уже нет. Команда отказывается от задания и остаётся на станциях.</p>
+<video controls preload="metadata" poster="insufficient_energy.png"><source src="insufficient_energy.mp4" type="video/mp4"></video>
+<p class="result">Доставлено 0/1 · 0 тактов · 0 передач · 0 энергии</p><p><a href="insufficient_energy.gif">Открыть GIF</a> ·
+<a href="insufficient_energy.mp4" download>Скачать видео</a> · <a href="insufficient_energy.json">Проверенный отчёт</a></p></article></main></html>

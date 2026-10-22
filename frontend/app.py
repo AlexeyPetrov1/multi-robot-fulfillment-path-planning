@@ -1,8 +1,9 @@
-"""Streamlit demonstration dashboard.
+"""Graph-mission workbench with an optional warehouse demonstration.
 
     streamlit run frontend/app.py
 
-It talks ONLY to the FastAPI service (default ``http://127.0.0.1:8000``, or set
+The default relay workbench plans and checks local scenarios without a server.
+The warehouse mode talks to FastAPI (default ``http://127.0.0.1:8000``, or set
 ``FULFILLMENT_API_URL``). It computes nothing itself. Configure credentials with
 ``FULFILLMENT_API_USERNAME`` / ``FULFILLMENT_API_PASSWORD`` or log in from the
 sidebar.
@@ -37,6 +38,13 @@ API_USER = os.environ.get("FULFILLMENT_API_USERNAME", "")
 API_PASSWORD = os.environ.get("FULFILLMENT_API_PASSWORD", "")
 
 st.set_page_config(page_title="Fulfillment System Dashboard", layout="wide")
+
+mode = st.sidebar.radio("Режим симулятора", ["Передача грузов", "Складской пример"])
+if mode == "Передача грузов":
+    from frontend.relay_workbench import render_workbench
+
+    render_workbench()
+    st.stop()
 
 
 # ======================================================================

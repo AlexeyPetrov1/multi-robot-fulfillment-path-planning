@@ -40,6 +40,7 @@ from robotics.api.routers import (
     health,
     planning,
     recovery,
+    relay,
     robots,
     tasks,
 )
@@ -55,6 +56,8 @@ logger = logging.getLogger("robotics.api")
 API_TITLE = "Autonomous Fulfillment & Path-Planning API"
 API_VERSION = "1.1.0"
 API_DESCRIPTION = (
+    "Finite-energy graph missions with mandatory cargo handoffs and return "
+    "reserves are available through /relay. "
     "REST access to the deterministic warehouse simulation: robot and task "
     "records, single-robot path planning (A* / Dijkstra), fleet task "
     "allocation (greedy / CP-SAT), prioritized multi-robot coordination, and "
@@ -158,6 +161,7 @@ def create_app(
     app.include_router(allocation.router)
     app.include_router(coordination.router)
     app.include_router(recovery.router)
+    app.include_router(relay.router)
 
     logger.info(
         "app.started",

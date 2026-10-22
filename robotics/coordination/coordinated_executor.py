@@ -150,8 +150,8 @@ class CoordinatedExecutor:
         """Drive every successfully-planned robot along its timed path.
 
         Robots whose planning FAILED are not executed and are listed in
-        `not_executed_robot_ids`. The successfully-planned subset is
-        mutually conflict-free by construction, so it is safe to run.
+        `not_executed_robot_ids`. They stay in place and block other robots,
+        as do any simulator robots outside this plan.
         """
         started_ns = time.perf_counter_ns()
 
@@ -294,6 +294,11 @@ class CoordinatedExecutor:
         executed_paths = {
             rid: TimedPath.found(rid, steps) for rid, steps in trace.items()
         }
+        for robot in self.simulator.robots:
+            if robot.robot_id not in executed_paths:
+                executed_paths[robot.robot_id] = TimedPath.found(
+                    robot.robot_id, [TimedStep(robot.position, 0)]
+                )
         validation_problems = find_coordination_problems(
             executed_paths, self.simulator.warehouse
         )
@@ -389,7 +394,11 @@ class CoordinatedExecutor:
                 )
 
         # joint: vertex conflict
-        destinations: Dict[Position, str] = {}
+        destinations: Dict[Position, str] = {
+            robot.position: robot.robot_id
+            for robot in self.simulator.robots
+            if robot.robot_id not in intents
+        }
         for robot_id in order:
             _, to = intents[robot_id]
             if to in destinations:

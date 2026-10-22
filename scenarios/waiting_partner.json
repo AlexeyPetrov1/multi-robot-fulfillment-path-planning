@@ -1,0 +1,23 @@
+{
+  "name": "Партнёр ждёт у встречи",
+  "description": "Свободный R2 приходит в M раньше и ждёт R1 один такт. R1 передаёт ему груз T1, затем оба возвращаются на свои станции, а R2 доставляет груз в B.",
+  "reserve_fraction": 0.1,
+  "nodes": [
+    {"id": "A", "x": 0, "y": 0},
+    {"id": "X", "x": 1, "y": 0},
+    {"id": "M", "x": 2, "y": 0},
+    {"id": "B", "x": 3, "y": 0}
+  ],
+  "edges": [
+    {"source": "A", "target": "X", "cost": 1},
+    {"source": "X", "target": "M", "cost": 1},
+    {"source": "M", "target": "B", "cost": 1}
+  ],
+  "robots": [
+    {"id": "R1", "start": "A", "station": "A", "capacity": 10, "battery": 10, "move_cost": 1},
+    {"id": "R2", "start": "B", "station": "B", "capacity": 10, "battery": 10, "move_cost": 1}
+  ],
+  "tasks": [
+    {"id": "T1", "pickup": "A", "dropoff": "B"}
+  ]
+}

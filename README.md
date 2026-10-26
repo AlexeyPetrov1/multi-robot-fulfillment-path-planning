@@ -25,7 +25,6 @@
 ### 1. Переключиться на ветку
 
 ```powershell
-cd "C:\Users\1\OneDrive\Рабочий стол\git\multi-robot-fulfillment-path-planning"
 git checkout clean
 ```
 

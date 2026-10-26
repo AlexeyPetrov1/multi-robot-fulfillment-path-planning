@@ -12,15 +12,6 @@ from robotics.services.relay_service import plan_mission, replay_mission
 APP = Path(__file__).resolve().parents[1] / "frontend/relay_app.py"
 
 
-@pytest.fixture(autouse=True)
-def fast_video(monkeypatch, tmp_path):
-    import frontend.relay_workbench as ui
-
-    monkeypatch.setattr(ui, "create_media", lambda report: {"mp4": b"video", "gif": b"GIF89a"})
-    monkeypatch.setattr(ui, "DEMO_DIR", tmp_path)
-    ui._report_media.clear()
-
-
 def test_long_mission_is_first_and_goals_are_named_before_execution():
     app = AppTest.from_file(str(APP), default_timeout=40).run()
     assert not app.exception
@@ -50,4 +41,4 @@ def test_incomplete_execution_can_continue_without_a_fresh_start():
     assert result["plan"]["source"] == "continued"
     assert result["optimal"] is False
     assert not any(button.key == "relay_continue" for button in app.button)
-    assert app.get("video")[0].proto.loop is False
+    assert app.get("iframe")

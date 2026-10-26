@@ -1,16 +1,8 @@
-"""Streamlit demonstration dashboard for the fulfillment system.
+"""Streamlit-стенд диспетчера передачи грузов.
 
-This package is a THIN CLIENT. It contains no planning, allocation,
-coordination or recovery logic of its own - every computation is done by the
-FastAPI service over HTTP. The modules here only:
-
-    api_client.py   a small typed HTTP client for the service
-    view_model.py   pure functions: API responses -> tables / grid / events
-    scenario.py     the fixed demo scenario (a warehouse + robots + tasks)
-    app.py          the Streamlit UI
-
-Run it with:
-
-    uvicorn robotics.api.app:create_app --factory      # terminal 1
-    streamlit run frontend/app.py                       # terminal 2
+    relay_app.py        точка входа: streamlit run frontend/relay_app.py
+    relay_workbench.py  выбор сценария, планирование, проверка и продолжение
+    relay_player.py     интерактивный плеер прогона (static/relay_player.html)
+    relay_view.py       таблицы роботов и грузов, подписи событий
+    demo_catalog.py     порядок и описания примеров
 """

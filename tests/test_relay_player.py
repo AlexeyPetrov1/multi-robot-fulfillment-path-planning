@@ -51,16 +51,13 @@ def test_preview_shows_the_initial_state_without_claiming_success():
     assert len(data["snapshots"]) == 1
 
 
-def test_workbench_shows_the_player_before_and_after_a_run(monkeypatch):
-    import frontend.relay_workbench as ui
-
-    monkeypatch.setattr(ui, "create_media", lambda report: {"mp4": b"video", "gif": b"GIF89a"})
+def test_workbench_shows_the_player_before_and_after_a_run():
     app = AppTest.from_file(str(APP), default_timeout=40).run()
     assert not app.exception
     assert app.get("iframe")
     app.selectbox[0].select("passport_ring").run()
     app.button[0].click().run()
     assert not app.exception
-    assert app.get("iframe") and app.get("video")
+    assert app.get("iframe")
     labels = [element.proto.label for element in app.get("download_button")]
     assert "Скачать плеер (HTML)" in labels

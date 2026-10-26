@@ -1,4 +1,4 @@
-﻿# Диспетчер складской миссии
+# Диспетчер складской миссии
 
 Стенд загружает граф, станции, роботов с разными расходами энергии и список
 заказов. Каждый груз нужно хотя бы один раз передать свободному роботу.
@@ -7,23 +7,11 @@
 
 ## Посмотреть работу
 
-[25 доставок, GIF](demos/grid16_team4_25.gif) ·
-[Видео MP4](demos/grid16_team4_25.mp4) ·
-[Проверенный отчёт](demos/grid16_team4_25.json)
-
-Этот сценарий выбран в интерфейсе первым. «Показать готовый прогон» заново
-проверяет сохранённые команды. «Построить и проверить план» запускает
-диспетчер и рассчитывает маршруты из содержимого сценария.
-
-Видео начинается с такта 0: все роботы находятся на станциях у стены.
-Груз расположен рядом с несущим его роботом. В панели видны заряд, текущий
-переход и следующая цель. «Погрузка П1» и «Отгрузка О3» обозначают реальные
-вершины графа. GIF проигрывается один раз; видео поддерживает паузу,
-перемотку и полный экран. Длинная запись сохраняет каждый проверенный такт.
-Экспорт поддерживает до 1000 тактов, 256 вершин и четырёх роботов.
-
-Все восемь примеров: [видеогалерея](demos/index.html),
-[GIF с пояснениями](demos/README.md), [архив](demos/demos.zip).
+`streamlit run frontend/relay_app.py`. Сценарий `grid16_team4_25` выбран первым.
+«Показать готовый прогон» заново проверяет сохранённые команды.
+«Построить и проверить план» запускает диспетчер и рассчитывает маршруты
+из содержимого сценария. Прогон показывает интерактивный плеер: пуск и пауза,
+шаг по тактам и событиям, заряд, груз и цель каждого робота.
 
 ## Длинная смена: 25 заказов
 
@@ -169,7 +157,7 @@ battery >= shortest_energy_distance(position, own_station) * move_cost
 ## Запуск и формат
 
 ```powershell
-& .venv/Scripts/python.exe -m streamlit run frontend/app.py
+& .venv/Scripts/python.exe -m streamlit run frontend/relay_app.py
 & .venv/Scripts/python.exe scripts/run_relay_mission.py --scenario scenarios/grid16_team4_25.json --output artifacts/new_shift.json
 & .venv/Scripts/python.exe scripts/run_relay_mission.py --resume artifacts/partial_shift.json --output artifacts/continued_shift.json
 ```
@@ -192,18 +180,8 @@ CLI сохраняет новый отчёт и отказывается зам�
 }
 ```
 
-API: `GET /relay/scenarios`, `POST /relay/plan`, `POST /relay/replay`,
-`POST /relay/continue`. Для планирования, проверки и продолжения нужна роль
-operator; JWT-проверки сохраняются. Симуляции не изменяют складские таблицы БД.
-
 ```powershell
-& .venv/Scripts/python.exe -m pytest tests -k "relay or stationary_safety"
+& .venv/Scripts/python.exe -m pytest
 & .venv/Scripts/python.exe scripts/build_grid16_team4_25.py --check
 & .venv/Scripts/python.exe scripts/build_grid16_team4_25.py --tasks 4 --check
-& .venv/Scripts/python.exe scripts/export_relay_demos.py --output-dir docs/demos --overwrite
 ```
-
-Экспорт строит или заново проверяет планы, затем сохраняет GIF, MP4, отчёты
-и контрольные суммы. Без `--overwrite` предыдущие записи сохраняются.
-Неподвижные, отказавшие и остановленные роботы продолжают занимать свои клетки
-при проверке и перепланировании, в том числе в старом складском исполнителе.

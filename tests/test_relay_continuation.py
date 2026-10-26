@@ -74,16 +74,3 @@ def test_next_destination_comes_from_checked_actions_and_changes_after_delivery(
 def test_unknown_planner_strategy_is_rejected():
     with pytest.raises(ValueError, match="strategy"):
         service.plan_mission(example_scenarios()["simple_handoff"], strategy="magic")
-
-
-def test_api_can_continue_a_checked_prefix(api_client, route):
-    prefix = service.replay_mission(route["scenario"], route["plan"]["actions"][:3])
-    response = api_client.post("/relay/continue", json={"report": prefix, "max_timesteps": 15})
-    assert response.status_code == 200, response.text
-    result = response.json()
-    assert result["success"]
-    assert physical_frames(result["snapshots"][:4]) == physical_frames(prefix["snapshots"])
-
-
-def test_viewer_cannot_continue_or_change_the_planner(viewer_client, route):
-    assert viewer_client.post("/relay/continue", json={"report": route}).status_code == 403

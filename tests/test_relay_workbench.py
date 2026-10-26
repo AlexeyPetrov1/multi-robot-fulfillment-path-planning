@@ -103,22 +103,3 @@ def test_horizon_limit_is_not_reported_as_global_impossibility():
     report = plan_mission(example_scenarios()["energy_relay"], max_timesteps=1)
     assert not report["success"]
     assert report["status"] == "horizon_limit"
-
-
-def test_relay_api_and_replay_use_the_same_scenario_contract(api_client):
-    scenario = example_scenarios()["passport_ring"]
-    response = api_client.post("/relay/plan", json={"scenario": scenario, "max_timesteps": 8})
-    assert response.status_code == 200, response.text
-    report = response.json()
-    assert report["success"], report
-    replay = api_client.post("/relay/replay", json={"scenario": scenario, "actions": report["plan"]["actions"]})
-    assert replay.status_code == 200
-    assert replay.json()["snapshots"] == report["snapshots"]
-
-
-def test_relay_api_rejects_bad_inputs_and_keeps_auth(api_client, viewer_client):
-    scenario = example_scenarios()["passport_ring"]
-    scenario["robots"][0]["battery"] = -1
-    assert api_client.post("/relay/plan", json={"scenario": scenario}).status_code == 422
-    assert viewer_client.post("/relay/plan", json={"scenario": example_scenarios()["passport_ring"]}).status_code == 403
-

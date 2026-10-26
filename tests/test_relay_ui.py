@@ -13,18 +13,6 @@ from robotics.services.relay_service import replay_mission
 APP = Path(__file__).resolve().parents[1] / "frontend" / "relay_app.py"
 
 
-@pytest.fixture(autouse=True)
-def fast_media(monkeypatch):
-    # Encoding is tested with real files in test_relay_media; these tests drive widgets.
-    import frontend.relay_workbench as ui
-
-    monkeypatch.setattr(ui, "create_media", lambda report, **kwargs: {
-        "mp4": b"test-video", "gif": b"GIF89a-test", "poster": b"test-poster", "duration": 4.0,
-    }, raising=False)
-    if hasattr(ui, "_report_media"):
-        ui._report_media.clear()
-
-
 def workbench(example="energy_relay"):
     app = AppTest.from_file(str(APP), default_timeout=40).run()
     if app.selectbox[0].value != example:
@@ -44,7 +32,7 @@ def test_real_planning_and_last_frame_show_delivered_tasks_and_safe_return(
     assert not app.exception
     assert app.success
     assert [m.value for m in app.metric] == [delivered, ticks, energy, "2"]
-    assert app.get("video")
+    assert app.get("iframe")
     assert not app.slider
     assert not app.toggle
     robots, tasks = app.dataframe[0].value, app.dataframe[1].value
@@ -76,12 +64,12 @@ def test_editing_valid_input_invalidates_previous_execution():
     assert not app.metric
 
 
-def test_playback_uses_video_and_keeps_final_state_visible_on_rerun():
+def test_playback_uses_player_and_keeps_final_state_visible_on_rerun():
     app = workbench("passport_ring")
     app.button[0].click().run()
     app.run()
     assert not app.exception
-    assert app.get("video")
+    assert app.get("iframe")
     assert not app.slider
     assert not app.toggle
     assert app.dataframe[0].value["Энергия"].tolist() == [14, 12, 1]

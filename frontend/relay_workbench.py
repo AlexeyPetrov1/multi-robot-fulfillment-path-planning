@@ -2,12 +2,10 @@
 
 import json
 from hashlib import sha256
-from pathlib import Path
 
 import streamlit as st
 
 from frontend.relay_view import event_message, robot_rows, task_rows
-from frontend.relay_media import create_media
 from frontend.relay_player import player_html, preview_report, render_player
 from frontend.demo_catalog import DESCRIPTIONS, ORDER
 from robotics.relay.examples import example_actions, example_scenarios
@@ -26,32 +24,6 @@ STATUS = {"optimal": "Найден план с минимальным число
           "feasible": "Все грузы доставлены, все роботы вернулись",
           "dispatch_limit": "Диспетчер не смог продолжить безопасный маршрут. Выполненная часть сохранена"}
 
-DEMO_DIR = Path(__file__).resolve().parents[1] / "docs" / "demos"
-
-
-def _published_media(report, key):
-    if key not in example_scenarios():
-        return None
-    try:
-        saved = json.loads((DEMO_DIR / f"{key}.json").read_text(encoding="utf-8"))
-        fields = ("scenario", "success", "metrics", "snapshots", "events")
-        if any(saved.get(field) != report.get(field) for field in fields):
-            return None
-        statuses = {saved.get("status"), report.get("status")}
-        if len(statuses) > 1 and not statuses <= {"completed", "feasible"}:
-            return None
-        if saved["plan"]["actions"] != report["plan"]["actions"]:
-            return None
-        return {ext: (DEMO_DIR / f"{key}.{ext}").read_bytes() for ext in ("mp4", "gif")}
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        return None
-
-
-@st.cache_data(max_entries=8, show_spinner=False)
-def _report_media(report_json, demo_key=None):
-    report = json.loads(report_json)
-    return _published_media(report, demo_key) or create_media(report)
-
 
 def _choose_demo(key):
     st.session_state.relay_example = key
@@ -60,8 +32,8 @@ def _choose_demo(key):
 
 
 def _gallery(examples):
-    with st.expander("Примеры работы: видео и GIF", expanded=False):
-        st.caption("Готовые записи можно посмотреть сразу. «Открыть в плеере» строит только этот прогон.")
+    with st.expander("Примеры сценариев", expanded=False):
+        st.caption("«Открыть в плеере» строит и проверяет прогон выбранного сценария.")
         columns = st.columns(2)
         keys = [key for key in ORDER if key in examples] + [key for key in examples if key not in ORDER]
         for index, key in enumerate(keys):
@@ -72,15 +44,6 @@ def _gallery(examples):
                            or f"Роботов: {len(example['robots'])}. Грузов: {len(example['tasks'])}.")
                 st.button("Открыть в плеере", key=f"relay_demo_{key}",
                           on_click=_choose_demo, args=(key,))
-                video, gif = DEMO_DIR / f"{key}.mp4", DEMO_DIR / f"{key}.gif"
-                if video.is_file():
-                    data = video.read_bytes()
-                    st.video(data, format="video/mp4")
-                    st.download_button("Скачать видео", data, file_name=video.name,
-                                       mime="video/mp4", key=f"relay_video_{key}", on_click="ignore")
-                    if gif.is_file():
-                        st.download_button("Скачать GIF примера", gif.read_bytes(), file_name=gif.name,
-                                           mime="image/gif", key=f"relay_gif_{key}", on_click="ignore")
 
 
 def render_workbench():
@@ -190,23 +153,12 @@ def render_workbench():
     c.metric("Потрачено энергии", metrics["total_energy"])
     d.metric("Передач", metrics["transfer_count"])
     st.write("Все роботы на станциях: " + ("да" if metrics["all_home"] else "нет"))
-    player, recording = st.tabs(["Интерактивный плеер", "Видео и GIF"])
-    with player:
-        render_player(report)
-        st.caption("Пробел: пуск и пауза. Стрелки: такт назад и вперёд, с Shift: к соседнему событию. "
-                   "Клик по роботу показывает его пройденный и оставшийся маршрут.")
-        st.download_button("Скачать плеер (HTML)", player_html(report), file_name="relay_player.html",
-                           mime="text/html", on_click="ignore",
-                           help="Один файл, открывается в браузере без сервера и интернета")
-    with recording:
-        with st.spinner("Готовим запись прогона"):
-            media = _report_media(json.dumps(report, sort_keys=True, ensure_ascii=False), selected)
-        st.video(media["mp4"], format="video/mp4", start_time=0, loop=False, autoplay=False)
-        st.caption("Запись начинается на станциях и заканчивается после возврата. "
-                   "Доступны пауза, перемотка и полный экран.")
-        a, b = st.columns(2)
-        a.download_button("Скачать GIF", media["gif"], file_name="relay_run.gif", mime="image/gif", on_click="ignore")
-        b.download_button("Скачать MP4", media["mp4"], file_name="relay_run.mp4", mime="video/mp4", on_click="ignore")
+    render_player(report)
+    st.caption("Пробел: пуск и пауза. Стрелки: такт назад и вперёд, с Shift: к соседнему событию. "
+               "Клик по роботу показывает его пройденный и оставшийся маршрут.")
+    st.download_button("Скачать плеер (HTML)", player_html(report), file_name="relay_player.html",
+                       mime="text/html", on_click="ignore",
+                       help="Один файл, открывается в браузере без сервера и интернета")
     st.subheader("Состояние после прогона")
     final = report["snapshots"][-1]
     st.dataframe(robot_rows(final), hide_index=True, width="stretch")

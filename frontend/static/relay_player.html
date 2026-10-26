@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#edf2f7;--card:#fff;--ink:#273449;--muted:#64748b;--line:#d7e0eb;--soft:#e7edf5;--accent:#2563eb;
+  --gold:#d2a34b;--gold-bg:#fff0cf;--ok:#168363;--ok-bg:#dcf3e9;--warn:#b45309;--warn-bg:#ffe2d6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:12px}
+button,select,input{font:inherit;color:inherit}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:10px}
+.top h1{font-size:20px;margin:0;flex:1 1 320px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:13px;background:#e0ecff}
+.badge.fail{background:var(--warn-bg)}
+.badge i{width:9px;height:9px;border-radius:50%;background:#28a08a}
+.badge.fail i{background:#f58248}
+.status{color:var(--muted);font-size:13px;flex-basis:100%}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:14px;padding:12px 14px;min-width:0}
+.card h2{font-size:14px;margin:0 0 8px}
+.mapwrap{position:relative;height:var(--map-h,460px);border-radius:10px;overflow:hidden;background:#f8fafc;cursor:grab;touch-action:none}
+.mapwrap.drag{cursor:grabbing}
+canvas{display:block;width:100%;height:100%}
+.tip{position:absolute;pointer-events:none;background:#1e293b;color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;display:none}
+.hint{position:absolute;right:8px;bottom:6px;font-size:11px;color:#94a3b8;pointer-events:none}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+.controls button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;min-width:36px}
+.controls button:hover{background:var(--soft)}
+.controls button.play{background:var(--accent);color:#fff;border-color:var(--accent);min-width:96px}
+.controls select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff}
+.controls label{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);cursor:pointer}
+.tick{font-variant-numeric:tabular-nums;min-width:112px;text-align:right;color:var(--muted)}
+.slider{display:flex;align-items:center;gap:10px;margin-top:8px}
+.slider input{flex:1;accent-color:var(--accent)}
+.marks{position:relative;height:6px;margin:2px 0 0}
+.marks span{position:absolute;top:0;width:3px;height:6px;border-radius:2px;background:var(--gold);transform:translateX(-1px)}
+.marks span.delivery{background:var(--ok)}
+.now{margin-top:10px;border-radius:10px;padding:8px 12px;background:#f8fafc;min-height:52px}
+.now.transfer{background:var(--gold-bg)}
+.now small{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.now.transfer small{color:#8b6a30}
+.now div{font-size:15px}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.robots{display:flex;flex-direction:column;gap:6px;max-height:var(--robots-h,330px);overflow:auto}
+.robot{border:1px solid transparent;border-radius:10px;padding:7px 8px;cursor:pointer}
+.robot:hover{background:#f8fafc}
+.robot.sel{border-color:var(--rc);background:#f8fafc}
+.robot .head{display:flex;align-items:center;gap:8px}
+.chip{display:inline-block;border-radius:6px;padding:1px 7px;color:#fff;font-weight:700;font-size:12px}
+.robot .pos{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.bar{height:7px;border-radius:4px;background:var(--soft);margin:6px 0 3px;position:relative;overflow:hidden}
+.bar b{position:absolute;inset:0 auto 0 0;border-radius:4px}
+.bar em{position:absolute;top:0;bottom:0;width:2px;background:#ef4444}
+.robot .meta{font-size:12px;display:flex;justify-content:space-between;gap:6px}
+.robot .goal{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cargo{color:#644318;background:#ffdf9b;border-radius:5px;padding:0 5px;font-weight:600}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.metric{background:#f8fafc;border-radius:8px;padding:6px 8px}
+.metric b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.metric span{font-size:11px;color:var(--muted)}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px}
+@media (max-width:860px){.lower{grid-template-columns:1fr}}
+.list{max-height:220px;overflow:auto;font-size:13px}
+.list table{width:100%;border-collapse:collapse}
+.list td{padding:4px 6px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.list tr.ev{cursor:pointer}
+.list tr.ev:hover td{background:#f8fafc}
+.list tr.cur td{background:#eef4ff}
+.list tr.past td{color:var(--muted)}
+.list td.t{font-variant-numeric:tabular-nums;color:var(--muted);width:44px;text-align:right}
+.st{display:inline-block;border-radius:999px;padding:0 8px;font-size:12px;white-space:nowrap}
+.st.pending{background:var(--soft);color:var(--muted)}
+.st.carried{background:#ffdf9b;color:#644318}
+.st.delivered{background:var(--ok-bg);color:var(--ok)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
+.empty{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1 id="title"></h1>
+  <span class="badge" id="badge"><i></i><span id="badgeText"></span></span>
+  <span class="tick" id="tick"></span>
+  <div class="status" id="status"></div>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="mapwrap" id="mapwrap">
+      <canvas id="map"></canvas>
+      <div class="tip" id="tip"></div>
+      <div class="hint">колесо: масштаб · перетаскивание: сдвиг · двойной клик: сброс</div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#d4efe3;border:1px solid #84b39f;border-radius:2px"></i>Станция</span>
+      <span><i style="background:#dbe7ff;border:1px solid #6b8fd6;transform:rotate(45deg)"></i>Погрузка</span>
+      <span><i style="border:2px solid #d2a34b;border-radius:50%"></i>Цель груза</span>
+      <span><i style="background:#ffdf9b;border:1px solid #b47c19;border-radius:2px"></i>Груз</span>
+    </div>
+    <div class="slider">
+      <input type="range" id="slider" min="0" step="0.001" aria-label="Такт">
+    </div>
+    <div class="marks" id="marks"></div>
+    <div class="controls">
+      <button id="first" title="В начало (Home)">⏮</button>
+      <button id="prevEv" title="Предыдущее событие (Shift+←)">◆←</button>
+      <button id="back" title="Такт назад (←)">◀</button>
+      <button id="play" class="play" title="Пуск / пауза (пробел)">▶ Пуск</button>
+      <button id="fwd" title="Такт вперёд (→)">▶</button>
+      <button id="nextEv" title="Следующее событие (Shift+→)">→◆</button>
+      <button id="last" title="В конец (End)">⏭</button>
+      <select id="speed" title="Скорость">
+        <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+        <option value="4">4×</option><option value="8">8×</option><option value="16">16×</option>
+      </select>
+      <label><input type="checkbox" id="trails" checked>Следы</label>
+      <label><input type="checkbox" id="labels" checked>Подписи</label>
+      <label><input type="checkbox" id="loop">Повтор</label>
+    </div>
+    <div class="now" id="now"><small id="nowHead"></small><div id="nowText"></div></div>
+  </div>
+  <div class="side">
+    <div class="card"><h2>Роботы и энергия</h2><div class="robots" id="robots"></div></div>
+    <div class="card"><h2>Показатели</h2><div class="metrics" id="metrics"></div></div>
+  </div>
+</div>
+<div class="lower">
+  <div class="card"><h2>События миссии</h2><div class="list" id="events"></div></div>
+  <div class="card"><h2>Грузы</h2><div class="list" id="tasks"></div></div>
+</div>
+<script>
+const REPORT = /*__REPORT__*/null;
+const OPTIONS = /*__OPTIONS__*/{};
+</script>
+<script>
+"use strict";
+// All positions come from checked snapshots; the player only interpolates between them.
+const COLORS = ["#2563eb", "#e56b19", "#169568", "#9255cf", "#d14686", "#158ea6"];
+const STATUS = {
+  optimal: "Найден план с минимальным числом тактов",
+  feasible: "Все грузы доставлены, все роботы вернулись",
+  completed: "Все грузы доставлены, все роботы вернулись",
+  no_plan: "Задача невыполнима при заданной энергии и правилах",
+  horizon_limit: "В заданное число тактов план не найден",
+  state_limit: "Достигнут предел перебора состояний",
+  time_limit: "Истекло время поиска",
+  rejected: "Действие отклонено",
+  incomplete: "Не все доставки и возвраты завершены",
+  dispatch_limit: "Диспетчер не смог продолжить безопасный маршрут. Выполненная часть сохранена",
+  preview: "Исходное состояние: план ещё не построен",
+};
+const ACTIVITY = {to_pickup: "К грузу", to_receive: "К встрече", to_handoff: "К передаче",
+  to_delivery: "Доставка", returning: "Домой", home: "На станции", wait: "Ожидание", complete: "Завершено"};
+const TASK_STATUS = {pending: "Ожидает", carried: "В пути", delivered: "Доставлен"};
+const REASONS = {
+  return_reserve: "Недостаточно энергии для действия и возврата с резервом",
+  invalid_move: "Между вершинами нет ребра",
+  vertex_capacity: "В одной вершине оказались больше двух роботов",
+  transfer_required: "Общая вершина разрешена только при передаче груза",
+  transfer_location: "Для передачи роботы должны встретиться в одной вершине",
+  handoff_required: "До доставки нужна хотя бы одна передача другому роботу",
+  cargo_capacity: "Робот может нести только один груз",
+  edge_swap: "Встречный проезд по одному ребру запрещён",
+  pickup_location: "Робот находится вне точки погрузки",
+  delivery_location: "Груз находится вне точки доставки",
+  transfer_owner: "Передающий робот не владеет грузом",
+  receiver_loaded: "Получатель уже несёт груз. Для передачи нужен свободный робот",
+  transfer_participant: "Робот может участвовать только в одной передаче за такт",
+  transfer_busy: "Робот может участвовать только в одной передаче за такт",
+  unknown_node: "Вершины нет в графе",
+};
+const PLANNER = {
+  "All reachable energy-feasible states exhausted.": "Варианты исчерпаны: доставка с передачей и безопасным возвратом невозможна.",
+  "A required destination is unreachable.": "Одна из необходимых вершин недостижима.",
+  "No plan fits the timestep limit.": "Для выполнения миссии нужно больше тактов.",
+};
+const KEY = new Set(["pickup", "transfer", "delivery", "rejected", "refusal"]);
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const fmt = (n, d = 1) => Number(n).toLocaleString("ru-RU", {maximumFractionDigits: d, minimumFractionDigits: 0});
+
+const R = REPORT, S = R.scenario, SNAP = R.snapshots, LAST = SNAP.length - 1;
+const NODES = new Map(S.nodes.map((n) => [n.id, n]));
+const NAME = (id) => (NODES.get(id) && NODES.get(id).label) || id;
+const TASKS = new Map(S.tasks.map((t) => [t.id, t]));
+const TASK_NAME = (id) => ((TASKS.get(id) && TASKS.get(id).label) || id);
+const SHORT_TASK = (id) => TASK_NAME(id).split(":")[0].trim();
+const COLOR = new Map(S.robots.map((r, i) => [r.id, COLORS[i % COLORS.length]]));
+const STATIONS = new Set(S.robots.map((r) => r.station));
+const PICKUPS = new Set(S.tasks.map((t) => t.pickup));
+const DENSE = S.nodes.length > 40;
+const EVENTS = R.events || [];
+const KEY_EVENTS = EVENTS.filter((e) => KEY.has(e.type));
+const KEY_TICKS = [...new Set(KEY_EVENTS.filter((e) => e.timestep > 0).map((e) => e.timestep))].sort((a, b) => a - b);
+const TRACKS = new Map(S.robots.map((r) => [r.id, SNAP.map((s) => (s.robots.find((x) => x.id === r.id) || {}).position)]));
+
+function eventMessage(e) {
+  let task = e.task_label || e.task;
+  if (task && task !== e.task) task = `${task.split(":")[0]} (${e.task})`;
+  switch (e.type) {
+    case "transfer": return `${e.from} передал груз ${task} роботу ${e.to}`;
+    case "pickup": return `${e.robot} забрал груз ${task}`;
+    case "delivery": return `Груз ${task} доставлен` + (e.dropoff_label ? `: ${e.dropoff_label}` : "");
+    case "rejected": return REASONS[e.code] || e.message || "Действие отклонено";
+    case "refusal": return PLANNER[e.message] || e.message || "Отказ";
+    case "wait": return `${e.robot} ожидает: ${e.to_label || e.to}`;
+    case "move": return `${e.robot}: ${e.from_label || e.from} → ${e.to_label || e.to}`;
+    default: return e.message || e.type;
+  }
+}
+
+// ---------------------------------------------------------------- frames
+function frameAt(t) {
+  t = Math.max(0, Math.min(LAST, t));
+  const tick = Math.floor(t + 1e-9);
+  const fraction = tick >= LAST ? 0 : t - tick;
+  const before = SNAP[tick];
+  const pos = (id) => NODES.get(id) || {x: 0, y: 0};
+  if (fraction < 1e-6) {
+    return {tick, fraction: 0, complete: !!before.complete, tasks: before.tasks,
+      robots: before.robots.map((r) => ({...r, x: pos(r.position).x, y: pos(r.position).y, moving: false, from: r.position}))};
+  }
+  const after = SNAP[tick + 1];
+  const pickups = new Map();
+  for (const e of EVENTS) if (e.timestep === after.timestep && e.type === "pickup") pickups.set(e.robot, e.task);
+  const prior = new Map(before.robots.map((r) => [r.id, r]));
+  const robots = after.robots.map((target) => {
+    const src = prior.get(target.id) || target;
+    const a = pos(src.position), b = pos(target.position);
+    const picked = pickups.get(target.id);
+    return {...src, activity: target.activity || src.activity, destination: target.destination || src.destination,
+      destination_label: target.destination_label || src.destination_label,
+      cargo: picked || src.cargo, cargo_label: picked ? TASK_NAME(picked) : src.cargo_label,
+      battery: src.battery + (target.battery - src.battery) * fraction,
+      x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction,
+      moving: src.position !== target.position, from: src.position, position: target.position};
+  });
+  const carriers = new Map([...pickups].map(([robot, task]) => [task, robot]));
+  const tasks = before.tasks.map((task) => carriers.has(task.id) ? {...task, owner: carriers.get(task.id), status: "carried"} : task);
+  return {tick, fraction, robots, tasks, complete: false};
+}
+
+// ---------------------------------------------------------------- state
+const state = {t: 0, playing: false, speed: 1, selected: null, trails: true, labels: true, loop: false,
+  zoom: 1, panX: 0, panY: 0, hover: null};
+const TICK_SECONDS = Math.max(0.12, Math.min(0.8, 60 / Math.max(LAST, 1)));  // a long run still fits a minute at 1×
+
+// ---------------------------------------------------------------- canvas
+const canvas = $("map"), ctx = canvas.getContext("2d"), wrap = $("mapwrap");
+const xs = S.nodes.map((n) => n.x), ys = S.nodes.map((n) => n.y);
+const BOUNDS = {x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys)};
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+  draw();
+}
+
+function baseScale() {
+  const pad = DENSE ? 36 : 70;
+  const w = Math.max(BOUNDS.x1 - BOUNDS.x0, 1e-6), h = Math.max(BOUNDS.y1 - BOUNDS.y0, 1e-6);
+  const sx = (W - 2 * pad) / w, sy = (H - 2 * pad) / h;
+  if (BOUNDS.x1 === BOUNDS.x0) return sy;
+  if (BOUNDS.y1 === BOUNDS.y0) return Math.min(sx, 160);
+  return Math.min(sx, sy);
+}
+
+function toScreen(x, y) {
+  const k = baseScale() * state.zoom;
+  const cx = (BOUNDS.x0 + BOUNDS.x1) / 2, cy = (BOUNDS.y0 + BOUNDS.y1) / 2;
+  return [W / 2 + (x - cx) * k + state.panX, H / 2 - (y - cy) * k + state.panY];
+}
+
+function unitPx() { return Math.max(4, Math.min(baseScale() * state.zoom, 220)); }
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+function draw() {
+  if (!W || !H) return;
+  const frame = frameAt(state.t);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const u = unitPx();
+  const nodeR = DENSE ? Math.max(2, Math.min(u * 0.12, 8)) : Math.max(6, Math.min(u * 0.16, 13));
+  const robotR = DENSE ? Math.max(12, Math.min(u * 0.46, 18)) : Math.max(11, Math.min(u * 0.22, 20));
+
+  // edges
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#d7e0eb";
+  ctx.lineWidth = DENSE ? Math.max(1, Math.min(u * 0.06, 4)) : Math.max(3, Math.min(u * 0.06, 6));
+  ctx.beginPath();
+  for (const e of S.edges) {
+    const a = NODES.get(e.source), b = NODES.get(e.target);
+    const [ax, ay] = toScreen(a.x, a.y), [bx, by] = toScreen(b.x, b.y);
+    ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+  }
+  ctx.stroke();
+  if (state.labels && (!DENSE || u > 40)) {
+    ctx.font = "12px system-ui,sans-serif"; ctx.fillStyle = "#64748b"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (const e of S.edges) {
+      if ((e.cost ?? 1) === 1) continue;
+      const a = NODES.get(e.source), b = NODES.get(e.target);
+      const [mx, my] = toScreen((a.x + b.x) / 2, (a.y + b.y) / 2);
+      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.fillRect(mx - 13, my - 9, 26, 18);
+      ctx.fillStyle = "#64748b"; ctx.fillText(String(e.cost), mx, my);
+    }
+  }
+
+  // nodes
+  const goals = new Set(frame.tasks.filter((t) => t.status !== "delivered").map((t) => t.dropoff));
+  const waiting = new Set(frame.tasks.filter((t) => t.status === "pending").map((t) => t.pickup));
+  for (const n of S.nodes) {
+    const [x, y] = toScreen(n.x, n.y);
+    if (goals.has(n.id)) {
+      ctx.strokeStyle = "#d2a34b"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, nodeR * (DENSE ? 2.2 : 1.9), 0, Math.PI * 2); ctx.stroke();
+    }
+    if (STATIONS.has(n.id)) {
+      const s = nodeR * (DENSE ? 1.8 : 1.1);
+      roundRect(x - s, y - s, 2 * s, 2 * s, 4);
+      ctx.fillStyle = "#d4efe3"; ctx.fill(); ctx.strokeStyle = "#84b39f"; ctx.lineWidth = 2; ctx.stroke();
+    } else if (PICKUPS.has(n.id)) {
+      const s = nodeR * (DENSE ? 1.7 : 1.15);
+      ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s, y); ctx.closePath();
+      ctx.fillStyle = waiting.has(n.id) ? "#dbe7ff" : "#eef2f7"; ctx.fill();
+      ctx.strokeStyle = waiting.has(n.id) ? "#6b8fd6" : "#a0afc3"; ctx.lineWidth = 2; ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2);
+      ctx.fillStyle = "#e7edf5"; ctx.fill();
+      if (!DENSE || u > 30) { ctx.strokeStyle = "#a0afc3"; ctx.lineWidth = 1.5; ctx.stroke(); }
+    }
+  }
+  if (state.labels) {
+    ctx.font = "12px system-ui,sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const n of S.nodes) {
+      const landmark = STATIONS.has(n.id) || PICKUPS.has(n.id) || goals.has(n.id) || n.label;
+      if (DENSE && !(landmark && (n.label || u > 40))) continue;
+      const [x, y] = toScreen(n.x, n.y);
+      let name = NAME(n.id);
+      if (DENSE && u < 60) name = name.replace(/^(Погрузка|Отгрузка|Станция) /, "");
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(name, x, y + nodeR * (DENSE ? 2.3 : 2) + 2);
+    }
+  }
+
+  // trails: where each robot has been, and the selected robot's remaining route
+  if (state.trails) {
+    for (const r of frame.robots) {
+      const track = TRACKS.get(r.id) || [];
+      const sel = state.selected === r.id;
+      if (state.selected && !sel) continue;
+      ctx.strokeStyle = COLOR.get(r.id); ctx.globalAlpha = sel ? 0.75 : 0.4;
+      ctx.lineWidth = sel ? 4 : DENSE ? 2.5 : 3; ctx.setLineDash([]);
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i <= frame.tick; i++) {
+        const n = NODES.get(track[i]); if (!n) continue;
+        const [x, y] = toScreen(n.x, n.y);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      }
+      const [rx, ry] = toScreen(r.x, r.y);
+      if (started) ctx.lineTo(rx, ry);
+      ctx.stroke();
+      if (sel) {
+        ctx.setLineDash([6, 6]); ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(rx, ry);
+        for (let i = frame.tick + 1; i <= LAST; i++) {
+          const n = NODES.get(track[i]); if (!n) continue;
+          const [x, y] = toScreen(n.x, n.y); ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // transfer highlight on the tick where it happens
+  if (frame.fraction === 0) {
+    for (const e of EVENTS) {
+      if (e.timestep !== frame.tick || e.type !== "transfer") continue;
+      const giver = frame.robots.find((r) => r.id === e.to) || frame.robots.find((r) => r.id === e.from);
+      if (!giver) continue;
+      const [x, y] = toScreen(giver.x, giver.y);
+      ctx.fillStyle = "rgba(237,172,49,.22)"; ctx.beginPath(); ctx.arc(x, y, robotR * 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#edac31"; ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
+
+  // robots; co-located robots are fanned out so both stay visible
+  const groups = new Map();
+  for (const r of frame.robots) {
+    const k = `${Math.round(r.x * 1000)}:${Math.round(r.y * 1000)}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  const placed = [];
+  for (const group of groups.values()) {
+    group.forEach((r, i) => {
+      let [x, y] = toScreen(r.x, r.y);
+      if (group.length > 1) {
+        const angle = (i / group.length) * Math.PI * 2 - Math.PI / 2;
+        x += Math.cos(angle) * robotR * 0.85; y += Math.sin(angle) * robotR * 0.85;
+      }
+      placed.push({r, x, y});
+    });
+  }
+  hitRobots = placed;
+  for (const {r, x, y} of placed) {
+    const color = COLOR.get(r.id);
+    const dim = state.selected && state.selected !== r.id;
+    ctx.globalAlpha = dim ? 0.45 : 1;
+    if (state.selected === r.id) {
+      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, y, robotR + 5, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(x, y, robotR, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.stroke();
+    // battery ring
+    const ratio = Math.max(0, Math.min(1, r.battery / r.capacity));
+    ctx.strokeStyle = ratio < 0.15 ? "#ef4444" : "rgba(255,255,255,.9)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, robotR - 3.5, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `700 ${Math.max(9, Math.round(robotR * 0.75))}px system-ui,sans-serif`;
+    ctx.fillText(r.id, x, y + 0.5);
+    if (r.cargo) {
+      const text = r.cargo;
+      ctx.font = `700 ${Math.max(10, Math.round(robotR * 0.65))}px system-ui,sans-serif`;
+      const w = ctx.measureText(text).width + 10, h = Math.max(14, robotR * 0.95);
+      const bx = x - w / 2, by = y - robotR - h - 3;
+      roundRect(bx, by, w, h, 4);
+      ctx.fillStyle = "#ffdf9b"; ctx.fill(); ctx.strokeStyle = "#b47c19"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = "#644318"; ctx.fillText(text, x, by + h / 2 + 0.5);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+let hitRobots = [];
+
+// ---------------------------------------------------------------- panels
+function pct(v) { return Math.round(v * 100) + "%"; }
+
+function renderRobots(frame) {
+  $("robots").innerHTML = frame.robots.map((r) => {
+    const color = COLOR.get(r.id);
+    const ratio = Math.max(0, Math.min(1, r.battery / r.capacity));
+    const need = Math.max(0, Math.min(1, (r.return_required + r.reserve) / r.capacity));
+    const where = r.moving ? `${NAME(r.from)} → ${NAME(r.position)}` : (r.position_label || NAME(r.position));
+    const activity = ACTIVITY[r.activity] || (r.position === r.station ? "На станции" : "Ожидание");
+    const goal = r.destination_label || NAME(r.destination || r.station);
+    const cargo = r.cargo ? `<span class="cargo">${esc(SHORT_TASK(r.cargo))}</span>` : `<span style="color:#94a3b8">без груза</span>`;
+    return `<div class="robot${state.selected === r.id ? " sel" : ""}" data-id="${esc(r.id)}" style="--rc:${color}">
+      <div class="head"><span class="chip" style="background:${color}">${esc(r.id)}</span><span class="pos" title="${esc(where)}">${esc(where)}</span>${cargo}</div>
+      <div class="bar" title="Красная метка: энергия, нужная для возврата с резервом"><b style="width:${ratio * 100}%;background:${color}"></b><em style="left:${need * 100}%"></em></div>
+      <div class="meta"><span>${fmt(r.battery, 2)} / ${fmt(r.capacity, 2)}</span><span>${pct(ratio)}</span></div>
+      <div class="goal" title="${esc(activity)} · ${esc(goal)}">${esc(activity)} · цель: ${esc(goal)}</div></div>`;
+  }).join("");
+}
+
+function renderMetrics(frame) {
+  const delivered = frame.tasks.filter((t) => t.status === "delivered").length;
+  const initial = new Map(S.robots.map((r) => [r.id, r.battery]));
+  const energy = frame.robots.reduce((s, r) => s + Math.max(0, (initial.get(r.id) ?? r.battery) - r.battery), 0);
+  const transfers = EVENTS.filter((e) => e.type === "transfer" && e.timestep <= frame.tick).length;
+  const home = frame.robots.filter((r) => r.position === r.station && !r.moving).length;
+  $("metrics").innerHTML = [
+    [`${delivered}/${frame.tasks.length}`, "доставлено"],
+    [fmt(energy, 1), "расход энергии"],
+    [transfers, "передач"],
+    [`${home}/${frame.robots.length}`, "на станциях"],
+  ].map(([v, l]) => `<div class="metric"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+}
+
+let lastEventsTick = -1;
+function renderEvents(frame) {
+  if (frame.tick === lastEventsTick && $("events").childElementCount) return;
+  lastEventsTick = frame.tick;
+  if (!KEY_EVENTS.length) { $("events").innerHTML = `<div class="empty">Ключевых событий нет</div>`; return; }
+  $("events").innerHTML = "<table>" + KEY_EVENTS.map((e) => {
+    const cls = e.timestep === frame.tick ? "cur" : e.timestep < frame.tick ? "past" : "";
+    return `<tr class="ev ${cls}" data-t="${e.timestep}"><td class="t">${e.timestep}</td><td>${esc(eventMessage(e))}</td></tr>`;
+  }).join("") + "</table>";
+  const cur = $("events").querySelector("tr.cur");
+  if (cur && state.playing) cur.scrollIntoView({block: "nearest"});
+}
+
+function renderTasks(frame) {
+  if (!frame.tasks.length) { $("tasks").innerHTML = `<div class="empty">Грузовых задач нет</div>`; return; }
+  $("tasks").innerHTML = "<table>" + frame.tasks.map((t) => {
+    const who = t.status === "carried" && t.owner ? ` · ${esc(t.owner)}` : "";
+    return `<tr><td><b>${esc(t.id)}</b></td><td>${esc(t.pickup_label || NAME(t.pickup))} → ${esc(t.dropoff_label || NAME(t.dropoff))}</td>
+      <td><span class="st ${t.status}">${TASK_STATUS[t.status] || t.status}${who}</span></td></tr>`;
+  }).join("") + "</table>";
+}
+
+function renderNow(frame) {
+  const important = frame.fraction === 0 ? EVENTS.filter((e) => e.timestep === frame.tick && KEY.has(e.type) && e.type !== "refusal") : [];
+  const transfer = important.some((e) => e.type === "transfer");
+  $("now").className = "now" + (transfer ? " transfer" : "");
+  $("nowHead").textContent = transfer ? "ПЕРЕДАЧА ГРУЗА" : "СЕЙЧАС";
+  let text;
+  if (!R.success && LAST === 0 && R.status !== "preview") text = PLANNER[R.reason] || STATUS[R.status] || "Миссия не выполнена";
+  else if (important.length) text = important.map(eventMessage).join(" · ");
+  else if (frame.complete) text = "Грузы доставлены. Все роботы вернулись на свои станции.";
+  else if (frame.fraction > 0) text = "Роботы движутся к целям";
+  else if (frame.tick === 0) text = "Старт: все роботы на своих станциях";
+  else text = "Движение и ожидание по проверенному плану";
+  $("nowText").textContent = text;
+}
+
+function render() {
+  const frame = frameAt(state.t);
+  $("slider").value = state.t;
+  $("tick").textContent = frame.fraction > 0 ? `Такт ${frame.tick} → ${frame.tick + 1} / ${LAST}` : `Такт ${frame.tick} / ${LAST}`;
+  renderRobots(frame); renderMetrics(frame); renderEvents(frame); renderTasks(frame); renderNow(frame);
+  draw();
+}
+
+// ---------------------------------------------------------------- playback
+let lastTime = null;
+function loop(now) {
+  if (!state.playing) { lastTime = null; return; }
+  if (lastTime !== null) {
+    state.t += ((now - lastTime) / 1000) * state.speed / TICK_SECONDS;
+    if (state.t >= LAST) {
+      if (state.loop) state.t = 0; else { state.t = LAST; setPlaying(false); }
+    }
+  }
+  lastTime = now;
+  render();
+  if (state.playing) requestAnimationFrame(loop);
+}
+function setPlaying(on) {
+  if (on && LAST === 0) on = false;
+  if (on && state.t >= LAST) state.t = 0;
+  state.playing = on;
+  $("play").textContent = on ? "⏸ Пауза" : "▶ Пуск";
+  if (on) requestAnimationFrame(loop);
+}
+function seek(t) { state.t = Math.max(0, Math.min(LAST, t)); render(); }
+function step(dir) {
+  setPlaying(false);
+  seek(dir > 0 ? Math.floor(state.t + 1e-6) + 1 : Math.ceil(state.t - 1e-6) - 1);
+}
+function jump(dir) {
+  setPlaying(false);
+  const t = dir > 0 ? KEY_TICKS.find((k) => k > state.t + 1e-6) : [...KEY_TICKS].reverse().find((k) => k < state.t - 1e-6);
+  seek(t ?? (dir > 0 ? LAST : 0));
+}
+
+// ---------------------------------------------------------------- wiring
+function init() {
+  $("title").textContent = S.name || "Миссия";
+  const preview = R.status === "preview";
+  $("badge").classList.toggle("fail", !R.success && !preview);
+  $("badgeText").textContent = preview ? "Без плана" : R.success ? "Миссия выполнена" : "Не выполнена";
+  let status = STATUS[R.status] || R.status || "";
+  if (!R.success && R.reason && !preview) status += ". " + (PLANNER[R.reason] || R.reason);
+  $("status").textContent = status;
+  const slider = $("slider");
+  slider.max = LAST; slider.disabled = LAST === 0;
+  $("marks").innerHTML = LAST ? KEY_EVENTS.filter((e) => e.type === "transfer" || e.type === "delivery")
+    .map((e) => `<span class="${e.type}" style="left:${(e.timestep / LAST) * 100}%" title="${e.timestep}: ${esc(eventMessage(e))}"></span>`).join("") : "";
+  if (OPTIONS.mapHeight) document.documentElement.style.setProperty("--map-h", OPTIONS.mapHeight + "px");
+  if (OPTIONS.mapHeight) document.documentElement.style.setProperty("--robots-h", Math.max(200, OPTIONS.mapHeight - 140) + "px");
+
+  slider.addEventListener("input", () => { setPlaying(false); seek(parseFloat(slider.value)); });
+  $("play").onclick = () => setPlaying(!state.playing);
+  $("back").onclick = () => step(-1);
+  $("fwd").onclick = () => step(1);
+  $("first").onclick = () => { setPlaying(false); seek(0); };
+  $("last").onclick = () => { setPlaying(false); seek(LAST); };
+  $("prevEv").onclick = () => jump(-1);
+  $("nextEv").onclick = () => jump(1);
+  $("speed").onchange = (e) => { state.speed = parseFloat(e.target.value); };
+  $("trails").onchange = (e) => { state.trails = e.target.checked; draw(); };
+  $("labels").onchange = (e) => { state.labels = e.target.checked; draw(); };
+  $("loop").onchange = (e) => { state.loop = e.target.checked; };
+  $("robots").addEventListener("click", (e) => {
+    const row = e.target.closest(".robot"); if (!row) return;
+    state.selected = state.selected === row.dataset.id ? null : row.dataset.id; render();
+  });
+  $("events").addEventListener("click", (e) => {
+    const row = e.target.closest("tr.ev"); if (!row) return;
+    setPlaying(false); seek(parseInt(row.dataset.t, 10));
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" && e.target.type !== "range" && e.target.type !== "checkbox") return;
+    if (e.code === "Space") { e.preventDefault(); setPlaying(!state.playing); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); e.shiftKey ? jump(1) : step(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); e.shiftKey ? jump(-1) : step(-1); }
+    else if (e.key === "Home") { setPlaying(false); seek(0); }
+    else if (e.key === "End") { setPlaying(false); seek(LAST); }
+  });
+
+  // map: zoom, pan, pick a robot, hover a vertex
+  let drag = null;
+  wrap.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - W / 2, my = e.clientY - rect.top - H / 2;
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    const zoom = Math.max(0.5, Math.min(12, state.zoom * factor));
+    const k = zoom / state.zoom;
+    state.panX = mx - (mx - state.panX) * k; state.panY = my - (my - state.panY) * k;
+    state.zoom = zoom; draw();
+  }, {passive: false});
+  wrap.addEventListener("pointerdown", (e) => {
+    drag = {x: e.clientX, y: e.clientY, px: state.panX, py: state.panY, moved: false};
+    wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener("pointermove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) { drag.moved = true; wrap.classList.add("drag"); }
+      if (drag.moved) { state.panX = drag.px + dx; state.panY = drag.py + dy; draw(); }
+      return;
+    }
+    hover(mx, my);
+  });
+  wrap.addEventListener("pointerup", (e) => {
+    wrap.classList.remove("drag");
+    if (drag && !drag.moved) {
+      const rect = canvas.getBoundingClientRect();
+      const hit = robotAt(e.clientX - rect.left, e.clientY - rect.top);
+      state.selected = hit ? (state.selected === hit ? null : hit) : null;
+      render();
+    }
+    drag = null;
+  });
+  wrap.addEventListener("pointerleave", () => { $("tip").style.display = "none"; });
+  wrap.addEventListener("dblclick", () => { state.zoom = 1; state.panX = 0; state.panY = 0; draw(); });
+
+  new ResizeObserver(resize).observe(wrap);
+  resize();
+  render();
+  if (OPTIONS.autoplay) setPlaying(true);
+}
+
+function robotAt(x, y) {
+  let best = null, dist = 22 * 22;
+  for (const p of hitRobots) {
+    const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d < dist) { dist = d; best = p.r.id; }
+  }
+  return best;
+}
+
+function hover(x, y) {
+  const tip = $("tip");
+  const rid = robotAt(x, y);
+  let text = null;
+  if (rid) {
+    const r = frameAt(state.t).robots.find((q) => q.id === rid);
+    text = `${r.id} · ${fmt(r.battery, 2)}/${fmt(r.capacity, 2)} · ${r.cargo ? "груз " + SHORT_TASK(r.cargo) : "без груза"}`;
+  } else {
+    let best = null, dist = 14 * 14;
+    for (const n of S.nodes) {
+      const [sx, sy] = toScreen(n.x, n.y);
+      const d = (sx - x) ** 2 + (sy - y) ** 2;
+      if (d < dist) { dist = d; best = n; }
+    }
+    if (best) {
+      const roles = [];
+      if (STATIONS.has(best.id)) roles.push("станция " + S.robots.filter((r) => r.station === best.id).map((r) => r.id).join(", "));
+      const up = S.tasks.filter((t) => t.pickup === best.id).map((t) => t.id);
+      const down = S.tasks.filter((t) => t.dropoff === best.id).map((t) => t.id);
+      if (up.length) roles.push("погрузка " + up.join(", "));
+      if (down.length) roles.push("доставка " + down.join(", "));
+      text = `${NAME(best.id)}${best.label ? ` (${best.id})` : ""} · (${best.x}, ${best.y})` + (roles.length ? " · " + roles.join(" · ") : "");
+    }
+  }
+  if (!text) { tip.style.display = "none"; return; }
+  tip.textContent = text; tip.style.display = "block";
+  const left = Math.min(x + 12, W - tip.offsetWidth - 4), top = y + 16 + tip.offsetHeight > H ? y - tip.offsetHeight - 8 : y + 16;
+  tip.style.left = Math.max(4, left) + "px"; tip.style.top = top + "px";
+}
+
+init();
+</script>
+</body>
+</html>

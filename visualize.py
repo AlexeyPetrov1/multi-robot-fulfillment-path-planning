@@ -12,6 +12,12 @@
     export_html([scenario(V, edges, robots, tasks, res, "Мой склад", coords=grid_coords(n, m))],
                 "dispatch.html")
 
+С отказом робота (см. failure.py) — тот же план, розыгрыш отказа и перестройка:
+
+    run = run_with_failure(V, edges, robots, tasks, original=res, p_fail=0.06, seed=4, max_horizon=16)
+    export_html([failure_scenario(V, edges, robots, tasks, run, "Мой склад, отказ",
+                                  coords=grid_coords(n, m), p_fail=0.06)], "dispatch.html")
+
 Открыть получившийся файл в браузере. Несколько сценариев в одном файле выбираются списком «Инстанс».
 `python3 visualize.py` собирает демо-страницу dispatch.html: малый эталон из паспорта и склады-сетки
 из генератора.
@@ -26,6 +32,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from generator import generate_graph, generate_tasks
 from test_run import GraphHandoffCpSatSolver, RobotSpec, ScheduleResult, TaskSpec, prepare_data
+from failure import FailureRun, run_with_failure
 
 TEMPLATE = Path(__file__).with_name("viz_ops_template.html")
 
@@ -166,6 +173,60 @@ def scenario(num_vertices: int, edges, robots: List[RobotSpec], tasks: List[Task
     }
 
 
+def cargo_track(tasks: List[TaskSpec], pos, hold, T: int) -> List[int]:
+    """Вершина каждого груза в момент T."""
+    at = [task.start_vertex for task in tasks]
+    for k in range(len(tasks)):
+        for t in range(T):
+            r = next((r for r in range(len(pos)) if hold[r][t] == k), None)
+            if r is not None:
+                at[k] = pos[r][t + 1]
+    return at
+
+
+def failure_scenario(num_vertices: int, edges, robots: List[RobotSpec], tasks: List[TaskSpec], run: FailureRun,
+                     name: str, description: str = "", coords=None, labels=None,
+                     p_fail: Optional[float] = None) -> dict:
+    """Сценарий с отказом робота: итоговый план (до отказа исходный, после — перестроенный)
+    плюс исходный план, чтобы пульт мог показать, что было отменено."""
+    sc = scenario(num_vertices, edges, robots, tasks, run.result, name, description or " ", coords, labels)
+    f = run.failure
+    if f is None:
+        sc["failure"] = None
+        if not description:
+            sc["description"] = (f"{num_vertices} вершин, {len(robots)} роб., {len(tasks)} задач. "
+                                 f"Отказ не выпал (p = {p_fail}), план выполнен за {sc['makespan']} тактов.")
+        return sc
+    r_f = next(i for i, r in enumerate(robots) if r.robot_id == f.robot_id)
+    k_of = {t.task_id: k for k, t in enumerate(tasks)}
+    T0 = run.original.makespan
+    opos, ohold = plan_from_ticks(robots, tasks, run.original)
+    odone: List[Optional[int]] = [None] * len(tasks)
+    for e in events_from_plan(tasks, opos, ohold, T0):
+        if e[1] == "deliver":
+            odone[e[2]] = e[0]
+    final = cargo_track(tasks, sc["pos"], sc["hold"], sc["makespan"])
+    undelivered = [k for k, task in enumerate(tasks) if final[k] != task.finish_vertex]
+    sc["failure"] = {
+        "r": r_f, "t": f.tick, "v": f.vertex,
+        "task": None if f.carried_task is None else k_of[f.carried_task],
+        "p": p_fail,
+        "orig_T": T0, "orig_optimal": run.original.solver_status == "OPTIMAL",
+        "orig_pos": opos, "orig_done": odone,
+        "replanned": [k_of[t.task_id] for t in run.replan_tasks],
+        "undelivered": undelivered,
+        "alive": len(robots) - 1,
+    }
+    if not description:
+        rid = f"R-{f.robot_id:02d}"
+        cargo = f" с грузом #{f.carried_task} на борту" if f.carried_task is not None else ""
+        sc["description"] = (f"{num_vertices} вершин, {len(robots)} роб., {len(tasks)} задач. "
+                             f"На такте {f.tick} отказал {rid} (вершина {f.vertex}){cargo}; план перестроен "
+                             f"для {len(robots) - 1} роб.: {T0} → {sc['makespan']} тактов, доставлено "
+                             f"{sc['delivered']} из {len(tasks)}.")
+    return sc
+
+
 def export_html(scenarios: List[dict], path: str) -> str:
     html = TEMPLATE.read_text(encoding="utf-8")
     data = json.dumps(scenarios, ensure_ascii=False, separators=(",", ":"))
@@ -192,32 +253,62 @@ def passport_reference(time_limit_s: float = 30.0) -> dict:
 
 def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42, padding: int = 1,
                         remove_prob: float = 0.2, battery: int = 20, num_robots: Optional[int] = None,
-                        max_horizon: int = 20, time_limit_s: float = 60.0, name: str = "") -> dict:
+                        max_horizon: int = 20, time_limit_s: float = 60.0, name: str = "",
+                        failures: Sequence[dict] = ()) -> List[dict]:
     """Склад из generator.py, роботы расставлены как в prepare_data (первые вершины).
 
     num_robots=None — число роботов по правилу prepare_data, floor(0.2*sqrt(V)); иначе своё.
+    failures — варианты отказа поверх того же плана, каждый как аргументы run_with_failure:
+    {"p_fail": 0.06, "seed": 4} (розыгрыш; "guarantee": True — отказ обязательно случится),
+    {"forced": (robot_id, t)} или {"forced": "busy"} (ломается робот с грузом). Возвращает список
+    сценариев: сначала план без отказа, затем по одному на каждый вариант отказа.
     """
     graph = generate_graph(n=n, m=m, padding=padding, remove_prob=remove_prob, seed=seed)
     raw_tasks = generate_tasks(graph, num_tasks=num_tasks, seed=seed)
-    V, edges, tasks, robots = prepare_data(graph, raw_tasks, default_battery=battery)
+    V, edges, tasks, robots = prepare_data(graph, raw_tasks)
     if num_robots is not None:
         robots = [RobotSpec(robot_id=i + 1, start_vertex=i, battery=battery) for i in range(num_robots)]
     res = GraphHandoffCpSatSolver(V, edges).solve(robots, tasks, max_horizon=max_horizon,
                                                   time_limit_s=time_limit_s)
-    return scenario(V, edges, robots, tasks, res,
-                    name or f"Склад: сетка {n}×{m}, {len(robots)} роб., {num_tasks} задач",
-                    coords=grid_coords(n, m))
+    name = name or f"Склад: сетка {n}×{m}, {len(robots)} роб., {num_tasks} задач"
+    out = [scenario(V, edges, robots, tasks, res, name, coords=grid_coords(n, m))]
+    for fl in failures:
+        run = run_with_failure(V, edges, robots, tasks, original=res, max_horizon=max_horizon, **fl)
+        tag = (f"отказ R-{run.failure.robot_id:02d} на такте {run.failure.tick}" if run.failure
+               else "отказ не выпал")
+        out.append(failure_scenario(V, edges, robots, tasks, run, f"{name} · {tag}",
+                                    coords=grid_coords(n, m), p_fail=fl.get("p_fail")))
+    return out
+
+
+def passport_failure(forced=(1, 2)) -> dict:
+    """Малый эталон с отказом: у R-02 и R-03 по 2 ед. заряда, так что резерва почти нет."""
+    edges = [(0, 1), (1, 2), (0, 3), (2, 4), (3, 5), (4, 7), (5, 6), (6, 7)]
+    tasks = [TaskSpec(1, 5, 2), TaskSpec(2, 2, 5)]
+    robots = [RobotSpec(1, 5, 4), RobotSpec(2, 2, 2), RobotSpec(3, 0, 2)]
+    run = run_with_failure(8, edges, robots, tasks, max_horizon=12, forced=forced)
+    coords = [[0, 0], [0.5, 0], [1, 0], [0, 0.5], [1, 0.5], [0, 1], [0.5, 1], [1, 1]]
+    return failure_scenario(8, edges, robots, tasks, run,
+                            f"Малый эталон · отказ R-{forced[0]:02d} на такте {forced[1]}", coords=coords)
 
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "dispatch.html"
+    P_FAIL = 0.06       # вероятность отказа едущего робота за такт (настраивается)
     scs = [
         passport_reference(),
-        generated_warehouse(4, 6, num_tasks=3, num_robots=3, battery=10, max_horizon=14, seed=7),
-        generated_warehouse(5, 6, num_tasks=4, num_robots=4, battery=12, max_horizon=16, seed=42),
-        generated_warehouse(6, 7, num_tasks=6, num_robots=5, battery=14, max_horizon=18, seed=3),
+        passport_failure(forced=(1, 2)),
+        *generated_warehouse(6, 7, num_tasks=4, num_robots=4, battery=16, max_horizon=18, seed=3,
+                             failures=[{"p_fail": P_FAIL, "seed": 4, "guarantee": True},
+                                       {"forced": "busy"}]),
+        *generated_warehouse(7, 8, num_tasks=5, num_robots=4, battery=20, max_horizon=20, seed=5,
+                             failures=[{"p_fail": P_FAIL, "seed": 2, "guarantee": True}])[1:],
+        *generated_warehouse(10, 12, num_tasks=6, num_robots=5, battery=60, max_horizon=30, seed=3),
     ]
     for s in scs:
+        f = s.get("failure")
+        extra = (f", отказ R{s['robot_ids'][f['r']]} t={f['t']} v={f['v']}, план {f['orig_T']}→{s['makespan']}"
+                 if f else "")
         print(f"{s['name']}: T={s['makespan']}, доставлено {s['delivered']}/{len(s['orders'])}, "
-              f"оптимум={s['optimal']}, событий {len(s['events'])}")
+              f"оптимум={s['optimal']}, событий {len(s['events'])}{extra}")
     print(export_html(scs, out))

@@ -77,11 +77,19 @@ class GraphHandoffCpSatSolver:
         max_horizon: int = 12,
         allow_floor_drop: bool = False,
         time_limit_s: float = 10.0,
+        blocked_vertices: Optional[Dict[int, int]] = None,
+        allow_undelivered: bool = False,
     ) -> ScheduleResult:
         """
         Ищет план минимальной длительности T (и суммарного расхода энергии),
         при котором все задачи доставляются из start_vertex в finish_vertex.
+
+        blocked_vertices: {вершина: сколько мест в ней занято неподвижными (отказавшими) роботами}.
+        allow_undelivered: разрешить не довезти часть грузов (тогда сначала максимизируется
+        число доставленных) — нужно при перестройке плана, когда оставшимся роботам
+        может не хватить заряда на всё.
         """
+        blocked = blocked_vertices or {}
         model = cp_model.CpModel()
         R = len(robots)
         K = len(tasks)
@@ -159,15 +167,20 @@ class GraphHandoffCpSatSolver:
         for v in self.vertices:
             for t in range(T + 1):
                 model.Add(
-                    sum(pos[r, v, t] for r in range(R)) <= self.max_robots_per_vertex
+                    sum(pos[r, v, t] for r in range(R))
+                    <= self.max_robots_per_vertex - blocked.get(v, 0)
                 )
 
         # --- ОГРАНИЧЕНИЯ НА ДВИЖЕНИЕ И ПЕРЕДАЧУ ГРУЗОВ (HANDOFF / SWAP) ---
+        delivered = {}
         for k, t_spec in enumerate(tasks):
             # В t = 0 груз находится на старте задачи, в t = T — на финише
+            # (в режиме allow_undelivered финиш в t = T не обязателен)
+            delivered[k] = cargo_at[k, t_spec.finish_vertex, T]
             for v in self.vertices:
                 model.Add(cargo_at[k, v, 0] == (1 if v == t_spec.start_vertex else 0))
-                model.Add(cargo_at[k, v, T] == (1 if v == t_spec.finish_vertex else 0))
+                if not allow_undelivered:
+                    model.Add(cargo_at[k, v, T] == (1 if v == t_spec.finish_vertex else 0))
 
             for t in range(T + 1):
                 model.Add(sum(cargo_at[k, v, t] for v in self.vertices) == 1)
@@ -223,7 +236,8 @@ class GraphHandoffCpSatSolver:
                 model.Add(cargo_at[k, t_spec.finish_vertex, t] == 1).OnlyEnforceIf(
                     not_at_goal.Not()
                 )
-                model.Add(makespan >= t + 1).OnlyEnforceIf(not_at_goal)
+                # недоставленный груз не растягивает makespan
+                model.Add(makespan >= t + 1).OnlyEnforceIf([not_at_goal, delivered[k]])
 
         total_moves = sum(
             move[r, u, v, t]
@@ -235,7 +249,9 @@ class GraphHandoffCpSatSolver:
         )
 
         # Главная цель — минимальное время T, вторичная — экономия заряда батареи
-        model.Minimize(makespan * 1000 + total_moves)
+        # (а если грузы можно не довезти — прежде всего максимум доставленных)
+        undelivered = K - sum(delivered.values())
+        model.Minimize(undelivered * 1000 * (T + 2) + makespan * 1000 + total_moves)
 
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = time_limit_s

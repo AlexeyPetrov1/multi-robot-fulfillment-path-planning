@@ -26,13 +26,13 @@ from __future__ import annotations
 
 import json
 import math
-import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from generator import generate_graph, generate_tasks
 from test_run import GraphHandoffCpSatSolver, RobotSpec, ScheduleResult, TaskSpec, prepare_data
 from failure import FailureRun, run_with_failure
+from planners import create_solver
 
 TEMPLATE = Path(__file__).with_name("viz_ops_template.html")
 
@@ -122,7 +122,7 @@ def validate(num_vertices: int, edges, robots: List[RobotSpec], tasks: List[Task
         occ: Dict[int, int] = {}
         for r in range(len(robots)):
             occ[pos[r][t]] = occ.get(pos[r][t], 0) + 1
-        assert max(occ.values()) <= max_robots_per_vertex, f"больше {max_robots_per_vertex} роботов в вершине, t={t}"
+        assert max(occ.values(), default=0) <= max_robots_per_vertex, f"больше {max_robots_per_vertex} роботов в вершине, t={t}"
     delivered = 0
     for k, task in enumerate(tasks):
         at = task.start_vertex
@@ -235,7 +235,8 @@ def export_html(scenarios: List[dict], path: str) -> str:
 
 
 # ----------------------------------------------------------------------------- готовые сценарии
-def passport_reference(time_limit_s: float = 30.0) -> dict:
+def passport_reference(time_limit_s: float = 30.0, planner: str = "cp-sat",
+                       planner_seed: int = 0) -> dict:
     """Малый эталон из паспорта: сетка 3×3 без центра, 3 робота, 2 встречные задачи."""
     #   0 1 2
     #   3 . 4
@@ -243,7 +244,8 @@ def passport_reference(time_limit_s: float = 30.0) -> dict:
     edges = [(0, 1), (1, 2), (0, 3), (2, 4), (3, 5), (4, 7), (5, 6), (6, 7)]
     tasks = [TaskSpec(1, 5, 2), TaskSpec(2, 2, 5)]
     robots = [RobotSpec(1, 5, 4), RobotSpec(2, 2, 2), RobotSpec(3, 0, 2)]
-    res = GraphHandoffCpSatSolver(8, edges).solve(robots, tasks, max_horizon=12, time_limit_s=time_limit_s)
+    res = create_solver(8, edges, planner=planner, seed=planner_seed).solve(
+        robots, tasks, max_horizon=12, time_limit_s=time_limit_s)
     coords = [[0, 0], [0.5, 0], [1, 0], [0, 0.5], [1, 0.5], [0, 1], [0.5, 1], [1, 1]]
     return scenario(8, edges, robots, tasks, res, "Малый эталон из паспорта", coords=coords,
                     description="Кольцо 3×3 без центра. Груз #1 из левого нижнего угла в правый верхний, "
@@ -254,7 +256,8 @@ def passport_reference(time_limit_s: float = 30.0) -> dict:
 def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42, padding: int = 1,
                         remove_prob: float = 0.2, battery: int = 20, num_robots: Optional[int] = None,
                         max_horizon: int = 20, time_limit_s: float = 60.0, name: str = "",
-                        failures: Sequence[dict] = ()) -> List[dict]:
+                        failures: Sequence[dict] = (), planner: str = "cp-sat",
+                        planner_seed: int = 0) -> List[dict]:
     """Склад из generator.py, роботы расставлены как в prepare_data (первые вершины).
 
     num_robots=None — число роботов по правилу prepare_data, floor(0.2*sqrt(V)); иначе своё.
@@ -268,12 +271,13 @@ def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42, padding:
     V, edges, tasks, robots = prepare_data(graph, raw_tasks)
     if num_robots is not None:
         robots = [RobotSpec(robot_id=i + 1, start_vertex=i, battery=battery) for i in range(num_robots)]
-    res = GraphHandoffCpSatSolver(V, edges).solve(robots, tasks, max_horizon=max_horizon,
-                                                  time_limit_s=time_limit_s)
+    res = create_solver(V, edges, planner=planner, seed=planner_seed).solve(
+        robots, tasks, max_horizon=max_horizon, time_limit_s=time_limit_s)
     name = name or f"Склад: сетка {n}×{m}, {len(robots)} роб., {num_tasks} задач"
     out = [scenario(V, edges, robots, tasks, res, name, coords=grid_coords(n, m))]
     for fl in failures:
-        run = run_with_failure(V, edges, robots, tasks, original=res, max_horizon=max_horizon, **fl)
+        run = run_with_failure(V, edges, robots, tasks, original=res, max_horizon=max_horizon,
+                               planner=planner, planner_seed=planner_seed, **fl)
         tag = (f"отказ R-{run.failure.robot_id:02d} на такте {run.failure.tick}" if run.failure
                else "отказ не выпал")
         out.append(failure_scenario(V, edges, robots, tasks, run, f"{name} · {tag}",
@@ -281,12 +285,13 @@ def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42, padding:
     return out
 
 
-def passport_failure(forced=(1, 2)) -> dict:
+def passport_failure(forced=(1, 2), planner: str = "cp-sat", planner_seed: int = 0) -> dict:
     """Малый эталон с отказом: у R-02 и R-03 по 2 ед. заряда, так что резерва почти нет."""
     edges = [(0, 1), (1, 2), (0, 3), (2, 4), (3, 5), (4, 7), (5, 6), (6, 7)]
     tasks = [TaskSpec(1, 5, 2), TaskSpec(2, 2, 5)]
     robots = [RobotSpec(1, 5, 4), RobotSpec(2, 2, 2), RobotSpec(3, 0, 2)]
-    run = run_with_failure(8, edges, robots, tasks, max_horizon=12, forced=forced)
+    run = run_with_failure(8, edges, robots, tasks, max_horizon=12, forced=forced,
+                           planner=planner, planner_seed=planner_seed)
     coords = [[0, 0], [0.5, 0], [1, 0], [0, 0.5], [1, 0.5], [0, 1], [0.5, 1], [1, 1]]
     return failure_scenario(8, edges, robots, tasks, run,
                             f"Малый эталон · отказ R-{forced[0]:02d} на такте {forced[1]}", coords=coords)
@@ -303,21 +308,30 @@ def _try(build, *args, **kwargs) -> List[dict]:
 
 
 if __name__ == "__main__":
-    out = sys.argv[1] if len(sys.argv) > 1 else "dispatch.html"
+    import argparse
+    from functools import partial
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("output", nargs="?", default="dispatch.html")
+    parser.add_argument("--planner", choices=("cp-sat", "greedy"), default="cp-sat")
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+    out = args.output
+    build = partial(_try, planner=args.planner, planner_seed=args.seed)
     P_FAIL = 0.06       # вероятность отказа едущего робота за такт (настраивается)
     scs = [
-        *_try(passport_reference),
-        *_try(passport_failure, forced=(1, 2)),
-        *_try(generated_warehouse, 6, 7, num_tasks=4, num_robots=4, battery=16, max_horizon=18, seed=3,
+        *build(passport_reference),
+        *build(passport_failure, forced=(1, 2)),
+        *build(generated_warehouse, 6, 7, num_tasks=4, num_robots=4, battery=16, max_horizon=18, seed=3,
               failures=[{"p_fail": P_FAIL, "seed": 4, "guarantee": True}, {"forced": "busy"}]),
-        *_try(generated_warehouse, 7, 8, num_tasks=5, num_robots=4, battery=20, max_horizon=20, seed=5,
+        *build(generated_warehouse, 7, 8, num_tasks=5, num_robots=4, battery=20, max_horizon=20, seed=5,
               failures=[{"p_fail": P_FAIL, "seed": 2, "guarantee": True}])[1:],
-        *_try(generated_warehouse, 10, 12, num_tasks=6, num_robots=5, battery=60, max_horizon=30, seed=3),
+        *build(generated_warehouse, 10, 12, num_tasks=6, num_robots=5, battery=60, max_horizon=30, seed=3),
         # большой склад под optimal-solver: роботы по правилу prepare_data (floor(0.2*sqrt(V)) = 12)
-        *_try(generated_warehouse, 64, 64, num_tasks=32,num_robots=6, padding=3, battery=2000, max_horizon=(64 + 64) * 4,
+        *build(generated_warehouse, 64, 64, num_tasks=32,num_robots=6, padding=3, battery=2000, max_horizon=(64 + 64) * 4,
               seed=42, name="Большой склад: сетка 64×64, 12 роб., 32 задачи",
               failures=[{"p_fail": 0.01, "seed": 3, "guarantee": True}]),
-        *_try(generated_warehouse, 128, 128, num_tasks=64, num_robots=13, padding=3, battery=5000, max_horizon=(128 + 128) * 4,
+        *build(generated_warehouse, 128, 128, num_tasks=64, num_robots=13, padding=3, battery=5000, max_horizon=(128 + 128) * 4,
              seed=42),
     ]
     for s in scs:

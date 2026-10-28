@@ -104,13 +104,18 @@ class SpaceTimeAStar:
         blocked_vertices: Dict[int, int],
     ) -> Optional[List[Tuple[int, int]]]:
         goal_dists = dist_oracle.get_all_from(goal_v)
+        min_goal_t = max(min_goal_t, start_t + goal_dists[start_v])
+        while (robot_id, goal_v, min_goal_t) in constraints:
+            min_goal_t += 1
         counter = 0
         h0 = max(goal_dists[start_v], max(0, min_goal_t - start_t))
-        pq = [(start_t + h0, start_t, counter, start_v, start_batt, [(start_v, start_batt)])]
+        pq = [(start_t + h0, goal_dists[start_v], goal_dists[start_v], -start_t, counter,
+               start_v, start_batt, [(start_v, start_batt)])]
         visited: Dict[Tuple[int, int], int] = {}
 
         while pq:
-            f, t, _, u, batt, path = heapq.heappop(pq)
+            f, _, _, neg_t, _, u, batt, path = heapq.heappop(pq)
+            t = -neg_t
 
             if u == goal_v and t >= min_goal_t:
                 return path
@@ -144,7 +149,9 @@ class SpaceTimeAStar:
                     pq,
                     (
                         next_f,
-                        next_t,
+                        start_batt - next_batt + goal_dists[v],
+                        goal_dists[v],
+                        -next_t,
                         counter,
                         v,
                         next_batt,
@@ -632,6 +639,7 @@ class GraphHandoffCpSatSolver:
 
         constraints: Set[Tuple[int, int, int]] = set()
         cbs_queue = [(0, 0, constraints)]
+        seen_constraints = {frozenset()}
         node_counter = 0
 
         while cbs_queue and (time.time() - start_time) < time_limit_s:
@@ -654,6 +662,10 @@ class GraphHandoffCpSatSolver:
             for r_conf in conf_robots:
                 new_constr = set(cur_constraints)
                 new_constr.add((r_conf, v_conf, t_conf))
+                key = frozenset(new_constr)
+                if key in seen_constraints:
+                    continue
+                seen_constraints.add(key)
                 node_counter += 1
                 cost = max(len(p) for p in paths.values())
                 heapq.heappush(cbs_queue, (cost, node_counter, new_constr))
@@ -663,7 +675,7 @@ class GraphHandoffCpSatSolver:
             makespan=0,
             ticks={},
             handoff_events=[],
-            solver_status="TIMEOUT",
+            solver_status="TIMEOUT" if cbs_queue else "NO_PLAN",
         )
 
     def _plan_all_robots_chronological(
@@ -774,13 +786,16 @@ class GraphHandoffCpSatSolver:
                     curr_v = paths[r][-1]
                     curr_b = batt[r][-1]
 
+                arrival_time = curr_t + 1
+                if leg["type"] == "handoff_drop":
+                    arrival_time = max(arrival_time, leg.get("t_est_end", 0))
                 p_carry = SpaceTimeAStar.plan(
                     r,
                     curr_v,
                     curr_t,
                     curr_b,
                     leg["dropoff"],
-                    curr_t + 1,
+                    arrival_time,
                     max_horizon,
                     self.adj,
                     self.oracle,
@@ -806,6 +821,8 @@ class GraphHandoffCpSatSolver:
             while len(paths[r]) < max_T:
                 self._append_wait(r, paths, batt, task_held, None)
 
+        if any(t < len(paths[r]) and paths[r][t] == v for r, v, t in constraints):
+            return None
         return paths, task_held
 
     def _append_wait(self, r, paths, batt, task_held, val=None):
@@ -943,6 +960,14 @@ def prepare_data(graph: Dict, raw_tasks: List[Dict], default_battery: int = 30):
 
 
 if __name__ == "__main__":
+    import argparse
+    from planners import create_solver
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--planner", choices=("cp-sat", "greedy"), default="cp-sat")
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+
     print("введите n, m:")
     n, m = map(int, input().split())
     print("введите число задач:")
@@ -955,11 +980,7 @@ if __name__ == "__main__":
         raw_graph, raw_tasks, default_battery=num_tasks * n * 2
     )
 
-    solver = GraphHandoffCpSatSolver(
-        num_vertices=num_vertices,
-        edges=edges,
-        max_robots_per_vertex=2,
-    )
+    solver = create_solver(num_vertices, edges, planner=args.planner, seed=args.seed)
 
     horizon = max(num_tasks * n * 2, (n + m) * 4)
 

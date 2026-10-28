@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from test_run import GraphHandoffCpSatSolver, RobotSpec, ScheduleResult, TaskSpec
+from planners import create_solver
 
 
 @dataclass(frozen=True)
@@ -124,7 +125,7 @@ def replan_after_failure(solver: GraphHandoffCpSatSolver, robots: List[RobotSpec
     left = [TaskSpec(task.task_id, cargo[task.task_id], task.finish_vertex)
             for task in tasks if cargo[task.task_id] != task.finish_vertex]
     if not left:
-        return ScheduleResult(True, 0, {}, [], "OPTIMAL"), left, alive
+        return ScheduleResult(True, 0, {}, [], res.solver_status), left, alive
     kw = dict(max_horizon=max_horizon, time_limit_s=time_limit_s, blocked_vertices={failure.vertex: 1})
     sub = solver.solve(alive, left, **kw)
     if not sub.success:
@@ -138,10 +139,12 @@ def merge_plans(robots: List[RobotSpec], res: ScheduleResult, failure: FailureEv
     """Такты 1..t_f — исходный план, дальше — перестроенный; сломанный робот стоит на месте."""
     t_f = failure.tick
     ticks = {t: list(res.ticks[t]) for t in range(1, t_f + 1)}
-    frozen = next(row for row in res.ticks[t_f] if row[0] == failure.robot_id) if t_f else None
+    frozen_battery = next(r.battery for r in robots if r.robot_id == failure.robot_id)
+    if t_f:
+        frozen_battery = next(row[3] for row in res.ticks[t_f] if row[0] == failure.robot_id)
     order = {r.robot_id: i for i, r in enumerate(robots)}
     for t in range(1, sub.makespan + 1):
-        rows = list(sub.ticks[t]) + [(failure.robot_id, failure.vertex, None, frozen[3])]
+        rows = list(sub.ticks[t]) + [(failure.robot_id, failure.vertex, None, frozen_battery)]
         ticks[t_f + t] = sorted(rows, key=lambda row: order[row[0]])
     shift = lambda s: re.sub(r"^Такт (\d+)", lambda m: f"Такт {int(m.group(1)) + t_f}", s)
     events = [e for e in res.handoff_events if int(re.match(r"Такт (\d+)", e).group(1)) < t_f]
@@ -156,14 +159,15 @@ def run_with_failure(num_vertices: int, edges: Sequence[Tuple[int, int]], robots
                      tasks: List[TaskSpec], p_fail: float = 0.05, seed: int = 0, max_horizon: int = 30,
                      time_limit_s: float = 60.0, replan_time_limit_s: float = 30.0,
                      original: Optional[ScheduleResult] = None,
-                     forced: Optional[Tuple[int, int]] = None, guarantee: bool = False) -> FailureRun:
+                     forced: Optional[Tuple[int, int]] = None, guarantee: bool = False,
+                     planner: str = "cp-sat", planner_seed: int = 0) -> FailureRun:
     """Строит план, разыгрывает отказ и, если он случился, перестраивает план.
 
     original — уже найденный план без отказа (чтобы не решать заново);
     forced = (robot_id, t) — отказ задан вручную вместо розыгрыша, forced="busy" — см. busy_failure;
     guarantee=True — розыгрыш, при котором отказ обязательно случается.
     """
-    solver = GraphHandoffCpSatSolver(num_vertices, list(edges))
+    solver = create_solver(num_vertices, list(edges), planner=planner, seed=planner_seed)
     if original is None:
         original = solver.solve(robots, tasks, max_horizon=max_horizon, time_limit_s=time_limit_s)
     if not original.success:

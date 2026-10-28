@@ -1,4 +1,7 @@
 __pycache__/
 .vscode/
+.venv/
+graphify-out/
+runs/
 graph.txt
 dispatch.html

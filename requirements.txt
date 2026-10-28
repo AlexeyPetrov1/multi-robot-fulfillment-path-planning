@@ -1,0 +1,3 @@
+ortools==9.15.6755
+matplotlib==3.11.0
+networkx==3.7

@@ -710,7 +710,7 @@ class GraphHandoffCpSatSolver:
                     curr_t,
                     curr_b,
                     leg["pickup"],
-                    curr_t,
+                    max(curr_t, t_partner_arr),
                     max_horizon,
                     self.adj,
                     self.oracle,
@@ -962,32 +962,52 @@ def prepare_data(graph: Dict, raw_tasks: List[Dict], default_battery: int = 30):
 if __name__ == "__main__":
     import argparse
     from planners import create_solver
+    from instances import (add_geometry_arguments, create_instance, geometry_options,
+                           load_instance, save_instance, solver_inputs)
+    from validation import verify_result
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--planner", choices=("cp-sat", "greedy"), default="cp-sat")
     parser.add_argument("--seed", type=int, default=0)
+    for name in ("n", "m", "tasks", "robots", "battery", "horizon"):
+        parser.add_argument("--" + name, type=int)
+    parser.add_argument("--time-limit", type=float, default=60)
+    parser.add_argument("--instance")
+    parser.add_argument("--save-instance")
+    add_geometry_arguments(parser)
     args = parser.parse_args()
 
-    print("введите n, m:")
-    n, m = map(int, input().split())
-    print("введите число задач:")
-    num_tasks = int(input())
-
-    raw_graph = generate_graph(n=n, m=m, padding=3, remove_prob=0.2, seed=42)
-    raw_tasks = generate_tasks(raw_graph, num_tasks=num_tasks, seed=42)
-
-    num_vertices, edges, tasks, robots = prepare_data(
-        raw_graph, raw_tasks, default_battery=num_tasks * n * 2
-    )
-
+    if args.instance:
+        instance = load_instance(args.instance)
+    else:
+        n, m = args.n, args.m
+        if n is None and m is None:
+            print("введите n, m:")
+            n, m = map(int, input().split())
+        elif n is None or m is None:
+            parser.error("--n and --m must be specified together")
+        num_tasks = args.tasks
+        if num_tasks is None:
+            print("введите число задач:")
+            num_tasks = int(input())
+        instance = create_instance(n=n, m=m, num_tasks=num_tasks, num_robots=args.robots,
+                                   battery=args.battery if args.battery is not None else num_tasks * n * 2,
+                                   geometry_seed=args.geometry_seed,
+                                   placement_seed=args.placement_seed, **geometry_options(args))
+    if args.save_instance:
+        save_instance(instance, args.save_instance)
+    num_vertices, edges, robots, tasks = solver_inputs(instance)
     solver = create_solver(num_vertices, edges, planner=args.planner, seed=args.seed)
-
-    horizon = max(num_tasks * n * 2, (n + m) * 4)
-
+    n, m = instance["config"]["geometry"]["n"], instance["config"]["geometry"]["m"]
+    horizon = args.horizon if args.horizon is not None else max(len(tasks) * n * 2, (n + m) * 4)
     res = solver.solve(
         robots=robots,
         tasks=tasks,
         max_horizon=horizon,
-        time_limit_s=60,
+        time_limit_s=args.time_limit,
     )
+    if res.success:
+        verify_result(instance, res)
+        if res.makespan > horizon:
+            raise ValueError("Result exceeds the planning horizon")
     print_output(res)

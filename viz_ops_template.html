@@ -582,6 +582,18 @@ function buildStatic() {
     seg(c, toScr(g, -4), toScr(g, 5));
     seg(c, toScr(-4, g), toScr(5, g));
   }
+  // Warehouse racks and walls occupy cells omitted from the transport graph.
+  if (S.warehouse) {
+    const { n, m, cells } = S.warehouse;
+    const walkable = new Set(cells.map(([r, col]) => r * m + col));
+    for (let r = 0; r < n; r++) for (let col = 0; col < m; col++) {
+      if (walkable.has(r * m + col)) continue;
+      const corners = [[col - 0.45, r - 0.45], [col + 0.45, r - 0.45],
+                       [col + 0.45, r + 0.45], [col - 0.45, r + 0.45]];
+      poly(c, corners.map(([x, y]) => toScr(x / Math.max(1, m - 1), y / Math.max(1, n - 1))),
+           "#243743", "rgba(140,160,175,0.5)", 0.6);
+    }
+  }
   // edges: glow pass, then a bright core. Big or dense graphs get a light version (no glow, thin lines),
   // and only what is on screen is drawn.
   const md = fit.md, M = 30;

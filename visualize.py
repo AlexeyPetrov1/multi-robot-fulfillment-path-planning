@@ -19,13 +19,14 @@
                                   coords=grid_coords(n, m), p_fail=0.06)], "dispatch.html")
 
 Открыть получившийся файл в браузере. Несколько сценариев в одном файле выбираются списком «Инстанс».
-`python3 visualize.py` собирает демо-страницу dispatch.html: малый эталон из паспорта и склады-сетки
-из генератора.
+`python3 visualize.py` собирает dispatch.html для параметрического склада long_aisles.
+Топология и размеры задаются аргументами командной строки.
 """
 from __future__ import annotations
 
 import json
 import math
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -33,6 +34,8 @@ from generator import generate_graph, generate_tasks
 from test_run import GraphHandoffCpSatSolver, RobotSpec, ScheduleResult, TaskSpec, prepare_data
 from failure import FailureRun, run_with_failure
 from planners import create_solver
+from instances import create_instance, solver_inputs
+from validation import verify_result
 
 TEMPLATE = Path(__file__).with_name("viz_ops_template.html")
 
@@ -253,35 +256,46 @@ def passport_reference(time_limit_s: float = 30.0, planner: str = "cp-sat",
                                 "передаются по эстафете.")
 
 
-def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42, padding: int = 1,
-                        remove_prob: float = 0.2, battery: int = 20, num_robots: Optional[int] = None,
+def generated_warehouse(n: int, m: int, num_tasks: int, seed: int = 42,
+                        battery: int = 20, num_robots: Optional[int] = None,
                         max_horizon: int = 20, time_limit_s: float = 60.0, name: str = "",
                         failures: Sequence[dict] = (), planner: str = "cp-sat",
-                        planner_seed: int = 0) -> List[dict]:
-    """Склад из generator.py, роботы расставлены как в prepare_data (первые вершины).
+                        planner_seed: int = 0, topology: str = "long_aisles",
+                        placement_seed: Optional[int] = None, geometry=None) -> List[dict]:
+    """Параметрический склад; размещение воспроизводится независимо от геометрии."""
+    instance = create_instance(n=n, m=m, topology=topology, num_tasks=num_tasks,
+                               num_robots=num_robots, battery=battery, geometry_seed=seed,
+                               placement_seed=seed if placement_seed is None else placement_seed,
+                               **(geometry or {}))
+    return instance_scenarios(instance, max_horizon, time_limit_s, name, failures,
+                              planner, planner_seed)
 
-    num_robots=None — число роботов по правилу prepare_data, floor(0.2*sqrt(V)); иначе своё.
-    failures — варианты отказа поверх того же плана, каждый как аргументы run_with_failure:
-    {"p_fail": 0.06, "seed": 4} (розыгрыш; "guarantee": True — отказ обязательно случится),
-    {"forced": (robot_id, t)} или {"forced": "busy"} (ломается робот с грузом). Возвращает список
-    сценариев: сначала план без отказа, затем по одному на каждый вариант отказа.
-    """
-    graph = generate_graph(n=n, m=m, padding=padding, remove_prob=remove_prob, seed=seed)
-    raw_tasks = generate_tasks(graph, num_tasks=num_tasks, seed=seed)
-    V, edges, tasks, robots = prepare_data(graph, raw_tasks)
-    if num_robots is not None:
-        robots = [RobotSpec(robot_id=i + 1, start_vertex=i, battery=battery) for i in range(num_robots)]
+
+def instance_scenarios(instance, max_horizon=1024, time_limit_s=60, name="", failures=(),
+                       planner="cp-sat", planner_seed=0):
+    V, edges, robots, tasks = solver_inputs(instance)
     res = create_solver(V, edges, planner=planner, seed=planner_seed).solve(
         robots, tasks, max_horizon=max_horizon, time_limit_s=time_limit_s)
-    name = name or f"Склад: сетка {n}×{m}, {len(robots)} роб., {num_tasks} задач"
-    out = [scenario(V, edges, robots, tasks, res, name, coords=grid_coords(n, m))]
+    verify_result(instance, res)
+    if res.makespan > max_horizon:
+        raise ValueError("Result exceeds the planning horizon")
+    config = instance["config"]["geometry"]
+    name = name or f"{config['topology']}: {config['n']}×{config['m']}, {len(robots)} роб., {len(tasks)} задач"
+    out = [scenario(V, edges, robots, tasks, replace(res, solver_status="FEASIBLE"),
+                    name, coords=instance["coords"])]
     for fl in failures:
         run = run_with_failure(V, edges, robots, tasks, original=res, max_horizon=max_horizon,
                                planner=planner, planner_seed=planner_seed, **fl)
+        run = replace(run, original=replace(run.original, solver_status="FEASIBLE"),
+                      result=replace(run.result, solver_status="FEASIBLE"))
         tag = (f"отказ R-{run.failure.robot_id:02d} на такте {run.failure.tick}" if run.failure
                else "отказ не выпал")
         out.append(failure_scenario(V, edges, robots, tasks, run, f"{name} · {tag}",
-                                    coords=grid_coords(n, m), p_fail=fl.get("p_fail")))
+                                    coords=instance["coords"], p_fail=fl.get("p_fail")))
+    for view in out:
+        view["warehouse"] = dict(n=config["n"], m=config["m"], topology=config["topology"],
+                                  cells=instance["cells"], zones=instance["zones"],
+                                  passages=instance["passages"])
     return out
 
 
@@ -301,7 +315,7 @@ def _try(build, *args, **kwargs) -> List[dict]:
     """Собирает сценарий(и); если решатель не справился, пишет предупреждение и пропускает."""
     try:
         out = build(*args, **kwargs)
-    except (AssertionError, RuntimeError) as e:
+    except (AssertionError, RuntimeError, ValueError) as e:
         print(f"пропущен {build.__name__}{args}: {e}")
         return []
     return out if isinstance(out, list) else [out]
@@ -309,35 +323,39 @@ def _try(build, *args, **kwargs) -> List[dict]:
 
 if __name__ == "__main__":
     import argparse
-    from functools import partial
+    from instances import add_geometry_arguments, geometry_options, load_instance
 
     parser = argparse.ArgumentParser()
     parser.add_argument("output", nargs="?", default="dispatch.html")
     parser.add_argument("--planner", choices=("cp-sat", "greedy"), default="cp-sat")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--n", type=int, default=15)
+    parser.add_argument("--m", type=int, default=20)
+    parser.add_argument("--tasks", type=int, default=6)
+    parser.add_argument("--robots", type=int)
+    parser.add_argument("--battery", type=int, default=500)
+    parser.add_argument("--horizon", type=int, default=1024)
+    parser.add_argument("--time-limit", type=float, default=60)
+    parser.add_argument("--instance")
+    add_geometry_arguments(parser)
     args = parser.parse_args()
-    out = args.output
-    build = partial(_try, planner=args.planner, planner_seed=args.seed)
-    P_FAIL = 0.06       # вероятность отказа едущего робота за такт (настраивается)
-    scs = [
-        *build(passport_reference),
-        *build(passport_failure, forced=(1, 2)),
-        *build(generated_warehouse, 6, 7, num_tasks=4, num_robots=4, battery=16, max_horizon=18, seed=3,
-              failures=[{"p_fail": P_FAIL, "seed": 4, "guarantee": True}, {"forced": "busy"}]),
-        *build(generated_warehouse, 7, 8, num_tasks=5, num_robots=4, battery=20, max_horizon=20, seed=5,
-              failures=[{"p_fail": P_FAIL, "seed": 2, "guarantee": True}])[1:],
-        *build(generated_warehouse, 10, 12, num_tasks=6, num_robots=5, battery=60, max_horizon=30, seed=3),
-        # большой склад под optimal-solver: роботы по правилу prepare_data (floor(0.2*sqrt(V)) = 12)
-        *build(generated_warehouse, 64, 64, num_tasks=32,num_robots=6, padding=3, battery=2000, max_horizon=(64 + 64) * 4,
-              seed=42, name="Большой склад: сетка 64×64, 12 роб., 32 задачи",
-              failures=[{"p_fail": 0.01, "seed": 3, "guarantee": True}]),
-        *build(generated_warehouse, 128, 128, num_tasks=64, num_robots=13, padding=3, battery=5000, max_horizon=(128 + 128) * 4,
-             seed=42),
-    ]
+    if args.instance:
+        instance = load_instance(args.instance)
+        scs = instance_scenarios(instance, args.horizon, args.time_limit,
+                                 planner=args.planner, planner_seed=args.seed)
+    else:
+        geometry = geometry_options(args)
+        topology = geometry.pop("topology")
+        scs = generated_warehouse(args.n, args.m, args.tasks, seed=args.geometry_seed,
+                                  battery=args.battery, num_robots=args.robots,
+                                  max_horizon=args.horizon, time_limit_s=args.time_limit,
+                                  topology=topology, geometry=geometry,
+                                  placement_seed=args.placement_seed,
+                                  planner=args.planner, planner_seed=args.seed)
     for s in scs:
         f = s.get("failure")
         extra = (f", отказ R{s['robot_ids'][f['r']]} t={f['t']} v={f['v']}, план {f['orig_T']}→{s['makespan']}"
                  if f else "")
         print(f"{s['name']}: T={s['makespan']}, доставлено {s['delivered']}/{len(s['orders'])}, "
               f"оптимум={s['optimal']}, событий {len(s['events'])}{extra}")
-    print(export_html(scs, out))
+    print(export_html(scs, args.output))
